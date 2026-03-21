@@ -29,12 +29,36 @@ AI-assisted Product Management and Developer Workspace — built for teams who w
 
 ## Project Structure
 ```
-buildloop/
-├── apps/
-│   ├── web/          # React + TypeScript frontend
-│   └── api/          # Express + TypeScript backend
-├── docker-compose.yml
-└── .env.example
+BuildLoop/
+├── frontend/
+│   ├── public/
+│   └── src/
+│       ├── api/
+│       ├── components/
+│       │   ├── feedback/
+│       │   ├── insights/
+│       │   ├── features/
+│       │   ├── kanban/
+│       │   ├── workspace/
+│       │   └── ui/
+│       ├── hooks/
+│       ├── pages/
+│       ├── store/
+│       ├── types/
+│       └── lib/
+│
+├── backend/
+│   └── src/
+│       ├── routes/
+│       ├── services/
+│       │   └── prompts/
+│       ├── models/
+│       ├── middleware/
+│       └── lib/
+│
+├── .env.example
+├── .gitignore
+└── README.md
 ```
 
 ## Team
