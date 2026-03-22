@@ -2,7 +2,7 @@
 
 AI-assisted Product Management and Developer Workspace — built for teams who want to turn raw user feedback into shipped features, fast.
 
-## What it does
+## What it actually does
 
 - **Feedback Ingestion** — paste interview transcripts or survey text, get it chunked and embedded automatically
 - **AI Insight Clustering** — Claude synthesises feedback into labelled themes with sentiment, frequency, and representative quotes
