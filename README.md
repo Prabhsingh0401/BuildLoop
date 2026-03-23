@@ -74,23 +74,28 @@ BuildLoop/
 | Arshdeep | ML/AI | Embeddings · Pinecone · Claude Services · RAG |
 
 ## Local Setup
+
+This project uses **npm workspaces** to manage both the frontend and backend from the root directory.
+
 ```bash
-# 1. Clone repo
+# 1. Clone the repository
 git clone https://github.com/your-org/BuildLoop.git
 cd BuildLoop
 
-# 2. Run API (port 5000 by default)
-cd buildloop-backend
-cp .env.example .env
+# 2. Install dependencies (installs for both frontend and backend)
 npm install
-npm run dev
 
-# 3. Run web client (port 5173)
-# In a new terminal tab:
-cd buildloop-frontend
-npm install
+# 3. Set up environment variables
+cd buildloop-backend && cp .env.example .env && cd ..
+cd buildloop-frontend && cp .env.example .env.local && cd ..
+
+# 4. Start the development server (runs concurrently)
 npm run dev
 ```
+
+### Access Points
+- **Frontend App:** http://localhost:5173
+- **Backend API:** http://localhost:5000
 
 ## Sprint Timeline
 

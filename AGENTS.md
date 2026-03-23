@@ -10,6 +10,11 @@ BuildLoop is a monorepo with two main packages:
 
 ## Build/Lint/Test Commands
 
+### Root (run both services)
+```bash
+npm run dev              # Start both frontend + backend concurrently
+```
+
 ### Frontend (buildloop-frontend/)
 ```bash
 cd buildloop-frontend
