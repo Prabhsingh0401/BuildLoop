@@ -30,31 +30,34 @@ AI-assisted Product Management and Developer Workspace — built for teams who w
 ## Project Structure
 ```
 BuildLoop/
-├── frontend/
+├── buildloop-frontend/
 │   ├── public/
 │   └── src/
 │       ├── api/
 │       ├── components/
 │       │   ├── feedback/
-│       │   ├── insights/
 │       │   ├── features/
+│       │   ├── insights/
 │       │   ├── kanban/
-│       │   ├── workspace/
-│       │   └── ui/
+│       │   ├── ui/
+│       │   └── workspace/
 │       ├── hooks/
+│       ├── lib/
 │       ├── pages/
 │       ├── store/
-│       ├── types/
-│       └── lib/
+│       └── types/
 │
-├── backend/
+├── buildloop-backend/
 │   └── src/
+│       ├── config/
+│       ├── controllers/
+│       ├── lib/
+│       ├── middlewares/
+│       ├── models/
 │       ├── routes/
 │       ├── services/
 │       │   └── prompts/
-│       ├── models/
-│       ├── middleware/
-│       └── lib/
+│       └── utils/
 │
 ├── .env.example
 ├── .gitignore
@@ -72,30 +75,21 @@ BuildLoop/
 
 ## Local Setup
 ```bash
-# 1. Clone and copy env
+# 1. Clone repo
 git clone https://github.com/your-org/BuildLoop.git
 cd BuildLoop
+
+# 2. Run API (port 5000 by default)
+cd buildloop-backend
 cp .env.example .env
+npm install
+npm run dev
 
-# 2. Start local MongoDB
-docker-compose up -d
-
-# 3. Run API (port 4000)
-cd apps/api && npm install && npm run dev
-
-# 4. Run web client (port 5173)
-cd apps/web && npm install && npm run dev
-```
-
-## Environment Variables
-```
-ANTHROPIC_API_KEY=
-VOYAGE_API_KEY=
-PINECONE_API_KEY=
-PINECONE_INDEX=
-MONGODB_URI=
-CLERK_SECRET_KEY=
-GCP_BUCKET_NAME=
+# 3. Run web client (port 5173)
+# In a new terminal tab:
+cd buildloop-frontend
+npm install
+npm run dev
 ```
 
 ## Sprint Timeline
