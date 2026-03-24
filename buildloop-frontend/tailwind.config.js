@@ -1,0 +1,42 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    './index.html',
+    './src/**/*.{js,jsx}',
+  ],
+  theme: {
+    extend: {
+      colors: {
+        background: "hsl(var(--background) / <alpha-value>)",
+        foreground: "hsl(var(--foreground) / <alpha-value>)",
+        card: { DEFAULT: "hsl(var(--card) / <alpha-value>)", foreground: "hsl(var(--card-foreground) / <alpha-value>)" },
+        popover: { DEFAULT: "hsl(var(--popover) / <alpha-value>)", foreground: "hsl(var(--popover-foreground) / <alpha-value>)" },
+        primary: { DEFAULT: "hsl(var(--primary) / <alpha-value>)", foreground: "hsl(var(--primary-foreground) / <alpha-value>)" },
+        secondary: { DEFAULT: "hsl(var(--secondary) / <alpha-value>)", foreground: "hsl(var(--secondary-foreground) / <alpha-value>)" },
+        muted: { DEFAULT: "hsl(var(--muted) / <alpha-value>)", foreground: "hsl(var(--muted-foreground) / <alpha-value>)" },
+        accent: { DEFAULT: "hsl(var(--accent) / <alpha-value>)", foreground: "hsl(var(--accent-foreground) / <alpha-value>)" },
+        destructive: { DEFAULT: "hsl(var(--destructive) / <alpha-value>)", foreground: "hsl(var(--destructive-foreground) / <alpha-value>)" },
+        ring: "hsl(var(--ring) / <alpha-value>)",
+        brand:   { DEFAULT: '#3B5BDB', light: '#EEF2FF', dark: '#2F4AC0' },
+        success: { DEFAULT: '#0CA678', light: '#E6F9F3' },
+        warn:    { DEFAULT: '#F59E0B', light: '#FEF9EB' },
+        danger:  { DEFAULT: '#EF4444', light: '#FEF2F2' },
+        bg:      '#F4F6FB',
+        surface: '#FFFFFF',
+        border:  '#E2E8F0',
+        ink:     { DEFAULT: '#1A1D23', 2: '#4A5568', 3: '#94A3B8' },
+        sidebar: { DEFAULT: '#1E2130', 2: '#262B3D' },
+      },
+      fontFamily: {
+        sans: ['Plus Jakarta Sans', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
+      borderRadius: {
+        card:  '12px',
+        input: '8px',
+        pill:  '9999px',
+      },
+    },
+  },
+  plugins: [],
+};
