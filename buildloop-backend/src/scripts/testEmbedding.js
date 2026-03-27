@@ -1,8 +1,8 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import { embed } from "../services/embedding.service";
-import { feedbackNamespace } from "../lib/pinecone";
+import { embed } from "../services/embedding.service.js";
+import { feedbackNamespace } from "../lib/pinecone.js";
 
 const TEST_VECTOR_ID = "__phase1_test_vector__";
 const TEST_TEXT = "BuildLoop is an AI-assisted product management tool for dev teams.";
@@ -12,7 +12,7 @@ async function runTest() {
 
   // STEP 1: Embedding 
   console.log("[1/4] Embedding test text via Voyage AI...");
-  let vectors: number[][];
+  let vectors; // Removed `number[][]` type annotation
 
   try {
     vectors = await embed([TEST_TEXT]);
