@@ -30,31 +30,34 @@ AI-assisted Product Management and Developer Workspace — built for teams who w
 ## Project Structure
 ```
 BuildLoop/
-├── frontend/
+├── buildloop-frontend/
 │   ├── public/
 │   └── src/
 │       ├── api/
 │       ├── components/
 │       │   ├── feedback/
-│       │   ├── insights/
 │       │   ├── features/
+│       │   ├── insights/
 │       │   ├── kanban/
-│       │   ├── workspace/
-│       │   └── ui/
+│       │   ├── ui/
+│       │   └── workspace/
 │       ├── hooks/
+│       ├── lib/
 │       ├── pages/
 │       ├── store/
-│       ├── types/
-│       └── lib/
+│       └── types/
 │
-├── backend/
+├── buildloop-backend/
 │   └── src/
+│       ├── config/
+│       ├── controllers/
+│       ├── lib/
+│       ├── middlewares/
+│       ├── models/
 │       ├── routes/
 │       ├── services/
 │       │   └── prompts/
-│       ├── models/
-│       ├── middleware/
-│       └── lib/
+│       └── utils/
 │
 ├── .env.example
 ├── .gitignore
@@ -71,32 +74,28 @@ BuildLoop/
 | Arshdeep | ML/AI | Embeddings · Pinecone · Claude Services · RAG |
 
 ## Local Setup
+
+This project uses **npm workspaces** to manage both the frontend and backend from the root directory.
+
 ```bash
-# 1. Clone and copy env
+# 1. Clone the repository
 git clone https://github.com/your-org/BuildLoop.git
 cd BuildLoop
-cp .env.example .env
 
-# 2. Start local MongoDB
-docker-compose up -d
+# 2. Install dependencies (installs for both frontend and backend)
+npm install
 
-# 3. Run API (port 4000)
-cd apps/api && npm install && npm run dev
+# 3. Set up environment variables
+cd buildloop-backend && cp .env.example .env && cd ..
+cd buildloop-frontend && cp .env.example .env.local && cd ..
 
-# 4. Run web client (port 5173)
-cd apps/web && npm install && npm run dev
+# 4. Start the development server (runs concurrently)
+npm run dev
 ```
 
-## Environment Variables
-```
-ANTHROPIC_API_KEY=
-VOYAGE_API_KEY=
-PINECONE_API_KEY=
-PINECONE_INDEX=
-MONGODB_URI=
-CLERK_SECRET_KEY=
-GCP_BUCKET_NAME=
-```
+### Access Points
+- **Frontend App:** http://localhost:5173
+- **Backend API:** http://localhost:5000
 
 ## Sprint Timeline
 

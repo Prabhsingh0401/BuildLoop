@@ -1,0 +1,20 @@
+{
+  "name": "buildloop",
+  "private": true,
+  "workspaces": [
+    "buildloop-frontend",
+    "buildloop-backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd buildloop-backend && npm run dev",
+    "dev:frontend": "cd buildloop-frontend && npm run dev",
+    "build": "npm run build:frontend",
+    "build:frontend": "cd buildloop-frontend && npm run build",
+    "start": "npm run start:backend",
+    "start:backend": "cd buildloop-backend && npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
