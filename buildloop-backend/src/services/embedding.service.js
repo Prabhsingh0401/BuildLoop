@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const VOYAGE_API_KEY = process.env.VOYAGE_API_KEY!;
+const VOYAGE_API_KEY = process.env.VOYAGE_API_KEY;
 const MODEL = "voyage-3";
 const BATCH_SIZE = 64;
 const EXPECTED_DIM = 1024;
@@ -11,10 +11,10 @@ const EXPECTED_DIM = 1024;
 // embed() 
 // Converts multiple text chunks → vectors
 
-export async function embed(chunks: string[]): Promise<number[][]> {
+export async function embed(chunks) {
   if (chunks.length === 0) return [];
 
-  const allVectors: number[][] = [];
+  const allVectors = [];
 
   for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
     const batch = chunks.slice(i, i + BATCH_SIZE);
@@ -34,8 +34,7 @@ export async function embed(chunks: string[]): Promise<number[][]> {
     });
 
     const data = await res.json();
-
-    const batchVectors = data.data.map((item: any) => item.embedding);
+    const batchVectors = data.data.map((item) => item.embedding);
 
     // Safety check
     for (const vec of batchVectors) {
@@ -56,7 +55,7 @@ export async function embed(chunks: string[]): Promise<number[][]> {
 // embedQuery() 
 // Converts a query → vector (used for search)
 
-export async function embedQuery(query: string): Promise<number[]> {
+export async function embedQuery(query) {
   const res = await fetch("https://api.voyageai.com/v1/embeddings", {
     method: "POST",
     headers: {

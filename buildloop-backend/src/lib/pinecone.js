@@ -28,9 +28,9 @@ export const workspaceNamespace = index.namespace("workspace");
 //This is the search engine of your app
 
 export async function queryEmbedding(
-  vector: number[],
-  namespace: "feedback" | "workspace",
-  topK: number
+  vector,
+  namespace,
+  topK
 ) {
   const ns = namespace === "feedback" ? feedbackNamespace : workspaceNamespace;
 
