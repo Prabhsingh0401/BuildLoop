@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "autoupdate": true,
+  "agent": {
+    "ui-consistency": {
+      "type": "subagent",
+      "description": "Enforces visual consistency across the BuildLoop frontend. Checks Tailwind config, design tokens, fonts, colors, and component patterns against DESIGN.md.",
+      "prompt_file": ".opencode/agents/ui-consistency.md"
+    }
+  },
+  "instructions": ["AGENTS.md", "DESIGN.md"]
+}

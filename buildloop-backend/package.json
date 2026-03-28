@@ -1,0 +1,31 @@
+{
+  "name": "buildloop-backend",
+  "version": "1.0.0",
+  "description": "BuildLoop backend API server",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
+    "@pinecone-database/pinecone": "^7.1.0",
+    "@types/mongoose": "^5.11.97",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.19.2",
+    "mongoose": "^9.3.3",
+    "node-fetch": "^2.7.0",
+    "voyageai": "^0.2.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/helmet": "^4.0.0",
+    "@types/node": "^25.5.0",
+    "helmet": "^8.1.0",
+    "nodemon": "^3.1.0"
+  }
+}
