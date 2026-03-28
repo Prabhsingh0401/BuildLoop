@@ -3,8 +3,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import router from './routes/index.js';
+import { connectDB } from './lib/mongo.js';
 
 dotenv.config();
+
+// Connect to MongoDB
+connectDB();
 
 const app = express();
 
