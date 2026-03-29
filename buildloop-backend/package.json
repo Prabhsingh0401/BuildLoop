@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
+    "@clerk/backend": "^3.2.3",
     "@pinecone-database/pinecone": "^7.1.0",
     "@types/mongoose": "^5.11.97",
     "cors": "^2.8.5",
