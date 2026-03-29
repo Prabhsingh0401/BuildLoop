@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import router from './routes/index.js';
 import { connectDB } from './lib/mongo.js';
-import { verifyClerkAuth } from './middleware/auth.middleware.js';
+import { verifyClerkAuth, requireAuth } from './middleware/auth.middleware.js';
 
 dotenv.config();
 
@@ -30,8 +30,8 @@ async function startServer() {
       });
     });
 
-    // Clerk authentication middleware - applies to all /api routes
-    app.use('/api', verifyClerkAuth);
+    // Protected API routes - verify and enforce Clerk authentication
+    app.use('/api', verifyClerkAuth, requireAuth);
 
     // Routes
     app.use('/api', router);

@@ -159,9 +159,12 @@ export function Sidebar() {
         {/* User / Settings Profile Footer - Show only if signed in */}
         <SignedIn>
           <div className="p-4 border-t border-white/[.04] bg-gradient-to-t from-black/20 to-transparent relative">
-            <div 
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[.06] cursor-pointer transition-colors text-white/70 hover:text-white group"
+            <button
+              type="button"
+              onClick={() => setShowProfileMenu((prev) => !prev)}
+              aria-haspopup="menu"
+              aria-expanded={showProfileMenu}
+              className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[.06] text-left text-white/70 transition-colors hover:text-white group backdrop-blur-sm focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {user?.imageUrl ? (
                 <img 
@@ -180,7 +183,7 @@ export function Sidebar() {
                 <p className="text-[13px] font-medium truncate text-surface">{user?.fullName || user?.primaryEmailAddress?.emailAddress}</p>
                 <p className="text-[11px] truncate text-brand-light/60 font-mono tracking-wide uppercase mt-0.5">{user?.primaryEmailAddress?.emailAddress}</p>
               </div>
-            </div>
+            </button>
 
             {/* Sign Out Dropdown Menu */}
             {showProfileMenu && (
@@ -216,11 +219,14 @@ export function Sidebar() {
               appearance={{
                 baseTheme: undefined,
                 elements: {
-                  card: 'bg-white/10 backdrop-blur-md border border-white/20 rounded-lg',
-                  socialButtonsBlockButton: 'bg-white/10 hover:bg-white/20 border border-white/20',
-                  formFieldInput: 'bg-white/5 border border-white/20 text-white placeholder:text-white/50',
-                  formButtonPrimary: 'bg-brand hover:bg-brand-dark',
-                  footerActionLink: 'text-brand-light hover:text-brand',
+                  card: 'border-none shadow-none',
+                  socialButtonsBlockButton: 'bg-white/10 hover:bg-white/20 border border-white/20 text-black',
+                  formFieldInput: 'bg-white/5 border border-white/20 text-black placeholder:text-black/50',
+                  formFieldLabel: 'text-black/70',
+                  formButtonPrimary: 'bg-brand hover:bg-brand-dark text-white',
+                  footerActionLink: 'text-black hover:text-brand',
+                  headerTitle: 'text-black',
+                  headerSubtitle: 'text-black/70',
                 }
               }}
             />
