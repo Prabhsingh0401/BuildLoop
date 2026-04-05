@@ -7,9 +7,6 @@ export async function connectDB() {
   try {
     const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/buildloop';
     
-    // 👇 ADD THIS LINE HERE
-    console.log("Using Mongo URI:", mongoURI);
-    
     await mongoose.connect(mongoURI);
     
     console.log('MongoDB connected successfully');

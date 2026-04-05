@@ -13,29 +13,49 @@ export async function askWorkspace({ projectId, question, messages = [] }) {
   // Step 1 — Embed question
   const queryVector = await embedQuery(question);
 
-  // Step 2 — Pinecone search (FIXED: added projectId)
+  // Step 2 — Pinecone search
   const matches = await queryEmbedding(queryVector, "workspace", 6, projectId);
 
+  // Early return (no hallucination, no cost)
+  if (matches.length === 0) {
+    return {
+      answer: "Not found in provided code",
+      citations: [],
+    };
+  }
+
   // Step 3 — Build context
-  const codeContext = matches.length
-    ? matches
-        .map(
-          (match, i) =>
-            `[SOURCE ${i + 1}] File: ${match.metadata?.fileName ?? "unknown"} | Language: ${match.metadata?.language ?? "unknown"}
+  const codeContext = matches
+    .map(
+      (match, i) =>
+        `[SOURCE ${i + 1}] File: ${match.metadata?.fileName ?? "unknown"} | Language: ${match.metadata?.language ?? "unknown"}
 \`\`\`
 ${match.metadata?.text ?? ""}
 \`\`\``
-        )
-        .join("\n\n")
-    : "No relevant code found.";
+    )
+    .join("\n\n");
 
   // Step 4 — Build system prompt
   const systemPrompt = buildWorkspaceSystemPrompt(codeContext);
 
-  // Step 5 — Format conversation history
-  const historyText = messages
+  // Step 5 — SAFE history handling (ANTI-INJECTION)
+  const safeMessages = messages
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map((m) => ({
+      role: m.role,
+      content: String(m.content).slice(0, 1000), // limit each message
+    }));
+
+  const MAX_HISTORY_CHARS = 5000;
+
+  let historyText = safeMessages
     .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
     .join("\n");
+
+  // Trim to keep latest messages
+  if (historyText.length > MAX_HISTORY_CHARS) {
+    historyText = historyText.slice(-MAX_HISTORY_CHARS);
+  }
 
   // Step 6 — Gemini call
   const startTime = Date.now();

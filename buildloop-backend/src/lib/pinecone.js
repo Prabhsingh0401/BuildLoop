@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { Pinecone } from "@pinecone-database/pinecone";
 
+// ENV VALIDATION
 if (!process.env.PINECONE_API_KEY) {
   throw new Error("PINECONE_API_KEY is not set. Add it to your .env file.");
 }
@@ -9,15 +10,14 @@ if (!process.env.PINECONE_INDEX) {
 }
 
 const VALID_NAMESPACES = ["feedback", "workspace"];
-const EXPECTED_VECTOR_DIM = 1024; 
+const EXPECTED_VECTOR_DIM = 1024;
 
 const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
 
-export const index              = pinecone.index(process.env.PINECONE_INDEX);
-export const feedbackNamespace  = index.namespace("feedback");
+export const index = pinecone.index(process.env.PINECONE_INDEX);
+export const feedbackNamespace = index.namespace("feedback");
 export const workspaceNamespace = index.namespace("workspace");
 
-// upsertVectors() is a thin wrapper around the Pinecone upsert method, with added validation and namespace handling.
 
 export async function upsertVectors(records, namespace) {
   if (!Array.isArray(records) || records.length === 0) {
@@ -32,19 +32,41 @@ export async function upsertVectors(records, namespace) {
 
   const ns = namespace === "feedback" ? feedbackNamespace : workspaceNamespace;
 
-  // Ensure every record has projectId in metadata
   for (const record of records) {
+    if (!record.id) {
+      throw new Error("upsertVectors: record.id is required");
+    }
+
     if (!record.metadata?.projectId) {
-      throw new Error("upsertVectors: metadata.projectId is required for filtering.");
+      throw new Error(
+        `upsertVectors: metadata.projectId is required (id=${record.id})`
+      );
+    }
+
+  
+    if (!Array.isArray(record.values)) {
+      throw new Error(
+        `upsertVectors: record.values must be an array (id=${record.id})`
+      );
+    }
+
+    if (record.values.length !== EXPECTED_VECTOR_DIM) {
+      throw new Error(
+        `upsertVectors: vector dimension mismatch (id=${record.id}). ` +
+        `Expected ${EXPECTED_VECTOR_DIM}, got ${record.values.length}`
+      );
+    }
+
+    if (!record.values.every(v => typeof v === "number")) {
+      throw new Error(
+        `upsertVectors: all values must be numbers (id=${record.id})`
+      );
     }
   }
 
-  // v7 API: upsert takes { records: [...] } not a plain array
   await ns.upsert({ records });
 }
 
-// queryEmbedding() 
-// Cosine similarity search in the specified namespace.
 
 export async function queryEmbedding(vector, namespace, topK, projectId) {
   if (!Array.isArray(vector) || vector.length === 0) {
@@ -58,6 +80,10 @@ export async function queryEmbedding(vector, namespace, topK, projectId) {
     );
   }
 
+  if (!vector.every(v => typeof v === "number")) {
+    throw new Error("queryEmbedding: vector must contain only numbers.");
+  }
+
   if (!VALID_NAMESPACES.includes(namespace)) {
     throw new Error(
       `queryEmbedding: namespace must be "feedback" or "workspace", got "${namespace}".`
@@ -68,14 +94,12 @@ export async function queryEmbedding(vector, namespace, topK, projectId) {
     throw new Error(`queryEmbedding: topK must be a positive integer, got ${topK}.`);
   }
 
-  // projectId validation
   if (!projectId) {
     throw new Error("queryEmbedding: projectId is required for filtering.");
   }
 
   const ns = namespace === "feedback" ? feedbackNamespace : workspaceNamespace;
 
-  // LOGGING (debug-friendly)
   console.log(`[Pinecone] ${namespace} → topK=${topK}, projectId=${projectId}`);
 
   try {
@@ -89,7 +113,6 @@ export async function queryEmbedding(vector, namespace, topK, projectId) {
       }
     });
 
-    // CLEAN RETURN FORMAT
     return (results.matches ?? []).map(match => ({
       id: match.id,
       score: match.score,
@@ -102,11 +125,8 @@ export async function queryEmbedding(vector, namespace, topK, projectId) {
   }
 }
 
-// deleteVectors()
 
 export async function deleteVectors(ids, namespace) {
-  // Empty array = nothing to delete. Not an error — ingestion.service may call
-  // this defensively even when pineconeIds is empty.
   if (!Array.isArray(ids) || ids.length === 0) return;
 
   if (!VALID_NAMESPACES.includes(namespace)) {

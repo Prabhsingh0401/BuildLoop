@@ -6,6 +6,7 @@ import { queryEmbedding } from "../lib/pinecone.js";
 import { embedQuery } from "./embedding.service.js";
 
 import AppError from "../utils/AppError.js";
+import mongoose from "mongoose";
 
 // Stay within safe limits
 const MAX_CHARS_PER_CALL = 120_000;
@@ -23,9 +24,13 @@ export async function synthesizeFeedback(projectId) {
     throw new AppError("No feedback found in Pinecone for this project", 404);
   }
 
-  const allChunks = matches.map((m) => m.metadata.text);
+  // FIXED: clean + safe chunk extraction
+  const allChunks = matches
+    .map((m) => m.metadata?.text)
+    .filter((text) => typeof text === "string" && text.trim().length > 0);
 
-  if (!allChunks.length) {
+  // FIXED: proper validation
+  if (allChunks.length === 0) {
     throw new AppError("Feedback exists but has no usable chunks", 400);
   }
 
@@ -72,25 +77,43 @@ Do NOT include markdown.`,
   // Step 5 — Validate with Zod
   const clusters = parseSynthesisOutput(rawText, projectId);
 
-  // Step 6 — Save to Mongo
-  await Insight.deleteMany({ projectId });
+  // Step 6 — SAFE DB WRITE (TRANSACTION)
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  const saved = await Insight.insertMany(
-    clusters.map((cluster) => ({
-      projectId,
-      clusterLabel: cluster.clusterLabel,
-      summary: cluster.summary,
-      sentiment: cluster.sentiment,
-      frequency: cluster.frequency,
-      representativeQuotes: cluster.representativeQuotes,
-    }))
+  let saved;
+
+  try {
+    await Insight.deleteMany({ projectId }, { session });
+
+    saved = await Insight.insertMany(
+      clusters.map((cluster) => ({
+        projectId,
+        clusterLabel: cluster.clusterLabel,
+        summary: cluster.summary,
+        sentiment: cluster.sentiment,
+        frequency: cluster.frequency,
+        representativeQuotes: cluster.representativeQuotes,
+      })),
+      { session }
+    );
+
+    await session.commitTransaction();
+
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+
+  } finally {
+    session.endSession();
+  }
+
+  console.log(
+    `[INFO][synthesis] Saved ${saved.length} clusters — project: ${projectId}`
   );
-
-  console.log(`[INFO][synthesis] Saved ${saved.length} clusters — project: ${projectId}`);
 
   return saved;
 }
-
 
 // SYSTEM PROMPT
 const SYNTHESIS_SYSTEM_PROMPT = `You are an expert product analyst specialising in user feedback synthesis.

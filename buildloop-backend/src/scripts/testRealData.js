@@ -61,8 +61,10 @@ const abort = (msg) => {
 };
 
 // Test constants 
-const TEST_PREFIX     = "__bloop_test__";
-const TEST_PROJECT_ID = "integration-test-project-001";
+const RUN_ID = Date.now();
+
+const TEST_PREFIX     = `__bloop_test__${RUN_ID}`;
+const TEST_PROJECT_ID = `integration-test-project-${RUN_ID}`;
 
 //  Realistic feedback data
 // 3 themes → synthesis should produce 3 distinct clusters
@@ -199,11 +201,12 @@ try {
   const queryVec = await embedQuery(queryText);
   const t0 = Date.now();
 
-  // 🔥 Retry logic added
+ 
   let matches = [];
 
   for (let i = 0; i < 5; i++) {
     matches = await queryEmbedding(queryVec, "feedback", 3, TEST_PROJECT_ID);
+
     if (matches.length > 0) break;
 
     warn(`No matches yet... retrying (${i + 1})`);
@@ -216,7 +219,7 @@ try {
     throw new Error("Still 0 matches after retries");
   }
 
-  ok(`${matches.length} matches returned  (${ms}ms)`);
+  ok(`${matches.length} matches returned (${ms}ms)`);
   ruler();
 
   matches.forEach((m, i) => {
@@ -245,22 +248,31 @@ try {
     );
   }
 
-  // Validate input guards
+  // Validate input guards 
   try {
-    await queryEmbedding(queryVec, "invalid_namespace", 3);
+    await queryEmbedding(queryVec, "invalid_namespace", 3, TEST_PROJECT_ID);
     warn("queryEmbedding() did NOT throw on invalid namespace");
-  } catch {
-    ok(`queryEmbedding() correctly rejects invalid namespace`);
+  } catch (err) {
+    if (err.message.includes("namespace")) {
+      ok("queryEmbedding() correctly rejects invalid namespace");
+    } else {
+      fail("Wrong error thrown for invalid namespace", err);
+    }
   }
 
   try {
-    await queryEmbedding([0.1, 0.2], "feedback", 3);
+    await queryEmbedding([0.1, 0.2], "feedback", 3, TEST_PROJECT_ID);
     warn("queryEmbedding() did NOT throw on wrong-dim vector");
-  } catch {
-    ok("queryEmbedding() correctly rejects wrong-dim vector");
+  } catch (err) {
+    if (err.message.includes("expected")) {
+      ok("queryEmbedding() correctly rejects wrong-dim vector");
+    } else {
+      fail("Wrong error thrown for wrong-dim vector", err);
+    }
   }
 
   passed++;
+
 } catch (err) {
   fail("queryEmbedding() failed", err);
   failed++;
