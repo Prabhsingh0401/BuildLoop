@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { SignUp, useUser, useClerk, SignedIn, SignedOut } from '@clerk/clerk-react';
 import { 
   LayoutDashboard, 
   MessageSquare, 
@@ -9,7 +10,8 @@ import {
   Code2,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  LogOut
 } from 'lucide-react';
 import useUIStore from '@/store/uiStore';
 
@@ -24,10 +26,22 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const { activeDrawer, openDrawer, closeDrawer } = useUIStore();
+  const { user, isSignedIn, isLoaded } = useUser();
+  const { signOut } = useClerk();
   const [isMobile, setIsMobile] = useState(false);
+  const [showSignUp, setShowSignUp] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const location = useLocation();
 
   const isMobileOpen = activeDrawer === 'mobile-sidebar';
+
+  // Close SignUp modal when user signs in
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      setShowSignUp(false);
+      setShowProfileMenu(false);
+    }
+  }, [isLoaded, isSignedIn]);
 
   // Automatically adapt to screen dimension changes
   useEffect(() => {
@@ -131,19 +145,94 @@ export function Sidebar() {
            {renderNavLinks()}
         </div>
 
-        {/* User / Settings Profile Footer */}
-        <div className="p-4 border-t border-white/[.04] bg-gradient-to-t from-black/20 to-transparent">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[.06] cursor-pointer transition-colors text-white/70 hover:text-white group">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-b from-brand to-brand-dark flex items-center justify-center flex-shrink-0 border border-white/10 shadow-lg shadow-brand/10 transition-transform group-hover:scale-105">
-              <span className="text-sm font-bold text-white tracking-wider">JS</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-medium truncate text-surface">Jagjeevan Singh</p>
-              <p className="text-[11px] truncate text-brand-light/60 font-mono tracking-wide uppercase mt-0.5">Admin Role</p>
-            </div>
+        {/* Get Started Button - Show only if not signed in */}
+        <SignedOut>
+          <div className="px-4 pb-3">
+            <button 
+              onClick={() => setShowSignUp(true)}
+              className="w-full px-4 py-2.5 rounded-lg bg-brand/20 hover:bg-brand/30 text-brand-light border border-brand/30 hover:border-brand/50 font-medium text-[14px] transition-all duration-300 hover:shadow-[0_0_16px_rgba(114,188,212,0.2)] active:scale-95 backdrop-blur-sm focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black">
+              Get Started
+            </button>
+          </div>
+        </SignedOut>
+
+        {/* User / Settings Profile Footer - Show only if signed in */}
+        <SignedIn>
+          <div className="p-4 border-t border-white/[.04] bg-gradient-to-t from-black/20 to-transparent relative">
+            <button
+              type="button"
+              onClick={() => setShowProfileMenu((prev) => !prev)}
+              aria-haspopup="menu"
+              aria-expanded={showProfileMenu}
+              className="flex w-full items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[.06] text-left text-white/70 transition-colors hover:text-white group backdrop-blur-sm focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {user?.imageUrl ? (
+                <img 
+                  src={user.imageUrl} 
+                  alt={user.fullName || 'User'} 
+                  className="w-10 h-10 rounded-full border border-white/10 shadow-lg shadow-brand/10 transition-transform group-hover:scale-105"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-b from-brand to-brand-dark flex items-center justify-center flex-shrink-0 border border-white/10 shadow-lg shadow-brand/10 transition-transform group-hover:scale-105">
+                  <span className="text-sm font-bold text-white tracking-wider">
+                    {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  </span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium truncate text-surface">{user?.fullName || user?.primaryEmailAddress?.emailAddress}</p>
+                <p className="text-[11px] truncate text-brand-light/60 font-mono tracking-wide uppercase mt-0.5">{user?.primaryEmailAddress?.emailAddress}</p>
+              </div>
+            </button>
+
+            {/* Sign Out Dropdown Menu */}
+            {showProfileMenu && (
+              <div className="mt-2 rounded-lg bg-white/10 border border-white/20 backdrop-blur-md overflow-hidden shadow-lg">
+                <button
+                  onClick={() => {
+                    signOut({ redirectUrl: '/' });
+                    setShowProfileMenu(false);
+                  }}
+                  className="w-full px-4 py-2.5 flex items-center gap-3 text-red-400 hover:bg-red-500/10 transition-colors text-[13px] font-medium"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        </SignedIn>
+      </aside>
+
+      {/* SignUp Modal */}
+      {showSignUp && !isSignedIn && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowSignUp(false)}
+        >
+          <div 
+            className="w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <SignUp 
+              redirectUrl="/"
+              appearance={{
+                baseTheme: undefined,
+                elements: {
+                  card: 'border-none shadow-none',
+                  socialButtonsBlockButton: 'bg-white/10 hover:bg-white/20 border border-white/20 text-black',
+                  formFieldInput: 'bg-white/5 border border-white/20 text-black placeholder:text-black/50',
+                  formFieldLabel: 'text-black/70',
+                  formButtonPrimary: 'bg-brand hover:bg-brand-dark text-white',
+                  footerActionLink: 'text-black hover:text-brand',
+                  headerTitle: 'text-black',
+                  headerSubtitle: 'text-black/70',
+                }
+              }}
+            />
           </div>
         </div>
-      </aside>
+      )}
     </>
   );
 }
