@@ -33,4 +33,4 @@ const InsightSchema = new mongoose.Schema({
   timestamps: true 
 });
 
-export const Insight = mongoose.model('Insight', InsightSchema);
+export const Insight = mongoose.model('Insight', InsightSchema, process.env.COLLECTION_INSIGHTS || 'insights');
