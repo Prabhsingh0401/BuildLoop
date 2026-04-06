@@ -45,4 +45,4 @@ const TaskSchema = new mongoose.Schema({
   }]
 }, { timestamps: true });
 
-export const Task = mongoose.model('Task', TaskSchema);
+export const Task = mongoose.model('Task', TaskSchema, process.env.COLLECTION_TASKS || 'tasks');

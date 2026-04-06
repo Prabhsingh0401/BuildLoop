@@ -35,4 +35,4 @@ const FeedbackSchema = new mongoose.Schema({
   timestamps: true 
 });
 
-export const Feedback = mongoose.model('Feedback', FeedbackSchema);
+export const Feedback = mongoose.model('Feedback', FeedbackSchema, process.env.COLLECTION_FEEDBACKS || 'feedbacks');
