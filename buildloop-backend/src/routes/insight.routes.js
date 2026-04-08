@@ -1,7 +1,27 @@
 import { Router } from 'express';
 import { Insight } from '../models/insight.model.js';
+import { prioritizeInsights } from '../services/prioritization.service.js';
 
 const router = Router();
+
+router.post('/prioritize', async (req, res, next) => {
+  try {
+    const { projectId } = req.body;
+    const features = await prioritizeInsights(projectId);
+    res.json({ success: true, data: features });
+  } catch (err) {
+    console.error('[POST /api/insights/prioritize]', err);
+
+    if (
+      err.message.includes('insightIds not found') ||
+      err.message.includes('Invalid ObjectId format') ||
+      err.message.includes('insightIds must be a non-empty array')
+    ) {
+      return res.status(400).json({ error: err.message });
+    }
+    return res.status(500).json({ error: 'Prioritization failed' });
+  }
+});
 
 /**
  * Task 3 — GET /api/insights/:projectId
