@@ -11,9 +11,6 @@ import {
   CloudUpload,
 } from 'lucide-react';
 import { submitFeedback } from '@/services/feedbackService';
-import useProjectStore from '@/store/projectStore';
-import { useAuth } from '@clerk/clerk-react';
-import { useQueryClient } from '@tanstack/react-query';
 
 const MIN_LENGTH = 100;
 
@@ -81,18 +78,17 @@ function ErrorBanner({ message, onDismiss }) {
 }
 
 /* ─── Main Component ─────────────────────────────────────────── */
-export default function FeedbackForm() {
-  const { activeProjectId } = useProjectStore();
-  const { getToken } = useAuth();
-  const queryClient = useQueryClient();
+import { useFeedback } from '@/hooks/useFeedback';
 
+export default function FeedbackForm() {
   const [mode, setMode]           = useState('paste');
   const [text, setText]           = useState('');
   const [file, setFile]           = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess]     = useState(null);  // { chunkCount }
   const [error, setError]         = useState(null);  // string
+
+  const { submitFeedback, isSubmitting } = useFeedback();
 
   const fileInputRef = useRef(null);
 
@@ -134,21 +130,12 @@ export default function FeedbackForm() {
       return;
     }
 
-    if (!activeProjectId) {
-      toast.error('Please select or create a project first.');
-      return;
-    }
-
-    setIsSubmitting(true);
     try {
-      const projectId = activeProjectId;
-      const token = await getToken();
       const res = await submitFeedback({
         rawText,
-        projectId,
         source: mode,
         metaType: 'other',
-      }, token);
+      });
 
       const chunkCount =
         res.data?.chunkCount ??
@@ -156,15 +143,11 @@ export default function FeedbackForm() {
         res.data?.pineconeIds?.length ??
         0;
 
-      queryClient.invalidateQueries({ queryKey: ['feedbacks', projectId] });
-
       setSuccess({ chunkCount });
       setText('');
       setFile(null);
     } catch (err) {
       setError(err.message);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

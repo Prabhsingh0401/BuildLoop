@@ -50,7 +50,7 @@ export default function Feedback() {
           >
              <h2 className="text-xl font-semibold text-ink flex items-center gap-2 mb-2">
                 <MessageSquare className="w-5 h-5 text-gray-400" />
-                Previous Feedback
+                History
              </h2>
              <FeedbackList />
           </motion.div>

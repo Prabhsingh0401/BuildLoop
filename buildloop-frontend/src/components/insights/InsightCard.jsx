@@ -1,27 +1,33 @@
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus, Users, Quote } from 'lucide-react';
+import { 
+  Accordion, 
+  AccordionContent, 
+  AccordionItem, 
+  AccordionTrigger 
+} from "@/components/ui/accordion";
 
 /* ─── Sentiment Badge ────────────────────────────────────────── */
 const SENTIMENT_CONFIG = {
   positive: {
     label: 'Positive',
-    bg: 'bg-white/40',
-    text: 'text-ink-3',
-    border: 'border-border',
+    bg: 'bg-emerald-500/10',
+    text: 'text-emerald-500',
+    border: 'border-emerald-500/20',
     Icon: TrendingUp,
   },
   negative: {
     label: 'Negative',
-    bg: 'bg-white/40',
-    text: 'text-ink-3',
-    border: 'border-border',
+    bg: 'bg-red-500/10',
+    text: 'text-red-500',
+    border: 'border-red-500/20',
     Icon: TrendingDown,
   },
   mixed: {
     label: 'Mixed',
-    bg: 'bg-white/40',
-    text: 'text-ink-3',
-    border: 'border-border',
+    bg: 'bg-amber-500/10',
+    text: 'text-amber-500',
+    border: 'border-amber-500/20',
     Icon: Minus,
   },
 };
@@ -86,14 +92,14 @@ export default function InsightCard({ insight, index = 0 }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.07, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
       className="group bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]
-        hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] hover:border-white/60 transition-all duration-300 relative overflow-hidden"
+        hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] hover:border-white/60 transition-all duration-300 relative overflow-hidden flex flex-col"
     >
       {/* Hover shine */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/0 to-white/0 group-hover:from-white/10 group-hover:to-white/0 rounded-2xl transition-all duration-500 pointer-events-none" />
 
       {/* Header row */}
       <div className="flex items-start justify-between gap-3 mb-3">
-        <h3 className="text-[15px] font-semibold text-ink leading-snug line-clamp-2 flex-1">
+        <h3 className="text-[15px] font-bold text-ink leading-snug line-clamp-2 flex-1">
           {clusterLabel}
         </h3>
         <SentimentBadge sentiment={sentiment} />
@@ -104,18 +110,8 @@ export default function InsightCard({ insight, index = 0 }) {
         {summary}
       </p>
 
-      {/* Representative quote */}
-      {representativeQuotes.length > 0 && (
-        <div className="flex items-start gap-2.5 mb-5 bg-bg/60 rounded-xl px-4 py-3 border border-border/60">
-          <Quote className="w-4 h-4 text-ink-3 shrink-0 mt-0.5" />
-          <p className="text-xs text-ink-3 italic line-clamp-2">
-            {representativeQuotes[0]}
-          </p>
-        </div>
-      )}
-
       {/* Footer */}
-      <div className="flex items-center gap-2 text-xs text-ink-3 font-medium">
+      <div className="flex items-center gap-2 text-xs text-ink-3 font-medium mb-4">
         <div className="flex items-center gap-1.5 bg-bg/80 px-3 py-1.5 rounded-full border border-border/60">
           <Users className="w-3.5 h-3.5" />
           <span className="tabular-nums">
@@ -124,6 +120,32 @@ export default function InsightCard({ insight, index = 0 }) {
           </span>
         </div>
       </div>
+
+      {/* Expandable Quotes Section */}
+      {representativeQuotes.length > 0 && (
+        <div className="mt-4">
+          <Accordion type="single" collapsible>
+            <AccordionItem value={`quotes-${insight._id || index}`} className="border-none">
+              <AccordionTrigger className="text-xs text-ink-3 hover:no-underline py-2">
+                View representative quotes
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-3 pt-2">
+                  {representativeQuotes.map((quote, idx) => (
+                    <blockquote 
+                      key={idx} 
+                      className="flex items-start gap-2 text-xs text-ink-3 italic border-l-2 border-border/60 pl-3 leading-relaxed"
+                    >
+                      <Quote className="w-3 h-3 text-ink-3 shrink-0 mt-0.5" />
+                      {quote}
+                    </blockquote>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
+      )}
     </motion.article>
   );
 }

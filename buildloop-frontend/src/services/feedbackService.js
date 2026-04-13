@@ -40,3 +40,20 @@ export async function fetchProjectFeedback(projectId, token) {
 
   return json;
 }
+
+export async function deleteFeedback(feedbackId, token) {
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}/api/feedback/${feedbackId}`, {
+    method: 'DELETE',
+    headers,
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json.message ?? 'Failed to delete feedback.');
+  }
+
+  return json;
+}

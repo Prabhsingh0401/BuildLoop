@@ -22,6 +22,8 @@ const Workspace  = delayedLazy(() => import('@/pages/Workspace'));
 
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
+import { Toaster } from 'sonner';
+
 export default function App() {
   if (!publishableKey) {
     return (
@@ -41,6 +43,7 @@ export default function App() {
 
   return (
     <ClerkProvider publishableKey={publishableKey}>
+      <Toaster position="top-right" richColors />
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>

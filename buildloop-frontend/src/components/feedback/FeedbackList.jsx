@@ -1,30 +1,20 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/clerk-react';
-import { Loader2, MessageSquare, Clock } from 'lucide-react';
-import { fetchProjectFeedback } from '@/services/feedbackService';
+import { Loader2, Clock, Trash2 } from 'lucide-react';
+import { useFeedback } from '@/hooks/useFeedback';
 import useProjectStore from '@/store/projectStore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 
 const CARD_BASE = 'bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_30px_rgb(0,0,0,0.04)]';
 
 export default function FeedbackList() {
   const { activeProjectId } = useProjectStore();
-  const { getToken, isSignedIn } = useAuth();
+  const { isSignedIn } = useAuth();
   
-  const { data, isLoading } = useQuery({
-    queryKey: ['feedbacks', activeProjectId],
-    queryFn: async () => {
-      const token = await getToken();
-      return fetchProjectFeedback(activeProjectId, token);
-    },
-    enabled: !!activeProjectId && isSignedIn,
-    select: (res) => res.data || []
-  });
+  const { feedbacks, isLoading } = useFeedback();
 
   if (!isSignedIn || !activeProjectId) return null;
-
-  const feedbacks = data || [];
 
   if (isLoading) {
     return (
@@ -55,11 +45,25 @@ export default function FeedbackList() {
 
 function FeedbackCard({ fb, index }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { deleteFeedback, isDeleting } = useFeedback();
+
+  const handleDelete = async (e) => {
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to delete this feedback?')) {
+      try {
+        await deleteFeedback(fb._id);
+        toast.success('Feedback deleted successfully');
+      } catch (error) {
+        toast.error(error.message || 'Failed to delete feedback');
+      }
+    }
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
       transition={{ delay: index * 0.05 }}
       onClick={() => setIsExpanded(!isExpanded)}
       className={`${CARD_BASE} rounded-2xl p-5 cursor-pointer hover:bg-white/80 transition-colors active:scale-[0.99]`}
@@ -68,9 +72,20 @@ function FeedbackCard({ fb, index }) {
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider bg-gray-100 text-gray-600">
           {fb.source}
         </span>
-        <div className="flex items-center text-xs text-gray-400 gap-1 font-medium">
-          <Clock className="w-3.5 h-3.5" />
-          {new Date(fb.createdAt).toLocaleDateString()}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center text-xs text-gray-400 gap-1 font-medium">
+            <Clock className="w-3.5 h-3.5" />
+            {new Date(fb.createdAt).toLocaleDateString()}
+          </div>
+          <button 
+            type="button"
+            disabled={isDeleting}
+            onClick={handleDelete}
+            className="text-gray-400 hover:text-danger hover:bg-danger/10 p-1.5 rounded-lg transition-colors"
+            title="Delete feedback"
+          >
+            {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+          </button>
         </div>
       </div>
       
@@ -83,7 +98,7 @@ function FeedbackCard({ fb, index }) {
           {isExpanded ? 'Show less' : 'Read more'}
         </span>
         <span className="text-xs text-gray-400 font-mono bg-gray-50 px-2 py-0.5 rounded-md">
-          {fb.chunks?.length || 0} chunks extracted
+          {fb.chunkCount ?? fb.chunks?.length ?? 0} chunks extracted
         </span>
       </div>
     </motion.div>
