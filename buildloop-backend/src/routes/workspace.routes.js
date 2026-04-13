@@ -8,50 +8,63 @@ import { uploadFile, getMimeType } from "../lib/storage.js";
 
 const router = Router();
 
-// ==============================
 // Multer Config (for file upload)
-// ==============================
 const upload = multer({ storage: multer.memoryStorage() });
 
 /**
- * ==========================================
  * POST /api/workspace/ask
  * Chat with workspace (WITH HISTORY)
- * ==========================================
  */
 router.post("/ask", async (req, res, next) => {
   try {
     const { question, projectId, messages = [] } = req.body;
 
-    if (!question?.trim()) {
-      return res.status(400).json({ message: "question is required" });
+    // ✅ Safe validation
+    if (typeof question !== "string" || !question.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "question is required",
+      });
     }
 
     if (!projectId) {
-      return res.status(400).json({ message: "projectId is required" });
+      return res.status(400).json({
+        success: false,
+        message: "projectId is required",
+      });
     }
 
     if (!Array.isArray(messages)) {
-      return res.status(400).json({ message: "messages must be an array" });
+      return res.status(400).json({
+        success: false,
+        message: "messages must be an array",
+      });
     }
+
+    const safeQuestion = question.trim();
 
     const { answer, citations } = await askWorkspace({
       projectId,
-      question,
+      question: safeQuestion,
       messages,
     });
 
-    res.json({ answer, citations });
+    // ✅ Consistent success response
+    res.json({
+      success: true,
+      data: {
+        answer,
+        citations,
+      },
+    });
   } catch (err) {
     next(err);
   }
 });
 
 /**
- * ==========================================
  * POST /api/workspace/:projectId/upload
  * Upload + S3 + Chunk + Embed + Store
- * ==========================================
  */
 router.post(
   "/:projectId/upload",
@@ -71,7 +84,8 @@ router.post(
       if (!req.file) {
         return res.status(400).json({
           success: false,
-          message: 'No file provided. Use multipart/form-data with "file" field.',
+          message:
+            'No file provided. Use multipart/form-data with "file" field.',
         });
       }
 
@@ -117,11 +131,9 @@ router.post(
   }
 );
 
-/**
- * ==========================================
+/*
  * GET /api/workspace/:projectId
  * List all uploaded files
- * ==========================================
  */
 router.get("/:projectId", async (req, res, next) => {
   try {

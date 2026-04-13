@@ -57,8 +57,8 @@ async function run() {
   console.log("\x1b[1m" + "═".repeat(55) + "\x1b[0m");
 
   // env check
-  const missing = ["VOYAGE_API_KEY","PINECONE_API_KEY","PINECONE_INDEX","ANTHROPIC_API_KEY"]
-    .filter((k) => !process.env[k]);
+  const REQUIRED_KEYS = ["VOYAGE_API_KEY","PINECONE_API_KEY","PINECONE_INDEX", process.env.USE_GEMINI ? "GEMINI_API_KEY" : null,].filter(Boolean);
+  const missing = REQUIRED_KEYS.filter((k) => !process.env[k]);
   if (missing.length) { console.error(`\n  Missing: ${missing.join(", ")}\n`); process.exit(1); }
 
   const voyage = new Voyage.VoyageAIClient({
@@ -197,13 +197,15 @@ async function run() {
   for (const { label, body } of checks) {
     try {
       const { status, data } = await post("/api/workspace/ask", body);
-      if (status === 400) {
-        ok(`400 ← ${label}  ("${data.message}")`);
-        validPassed++;
-      } else {
-        warn(`Expected 400 for ${label}, got ${status}`);
-        validPassed++; // soft pass — route still works
-      }
+      if (status === 400 && data.success === false) {
+        ok(`400 ← ${label} ("${data.message}")`);
+        validPassed++;} else {
+          fail(
+            `Validation failed for ${label}`,
+            `status=${status}, response=${JSON.stringify(data)}`
+          );
+          failed++;
+        }
     } catch (err) {
       fail(`${label} check threw`, err);
     }

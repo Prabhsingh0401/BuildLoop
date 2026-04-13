@@ -2,6 +2,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, RotateCcw, Bot, Sparkles } from "lucide-react";
 import { CitationCard } from "./CitationCard.jsx";
 
+// Reusable button base (design system)
+const BUTTON_BASE =
+  "backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 disabled:opacity-50 disabled:cursor-not-allowed";
+
 // TypingIndicator
 function TypingIndicator() {
   return (
@@ -63,7 +67,7 @@ function AssistantBubble({ content, citations = [] }) {
   );
 }
 
-// EmptyState 
+// EmptyState
 function EmptyState({ hasFiles }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
@@ -95,8 +99,11 @@ export function ChatInterface({
   hasFiles = false,
 }) {
   const [input, setInput] = useState("");
+  const [error, setError] = useState(null);
+
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
   const hasMessages = messages.length > 0;
 
   // Auto scroll
@@ -113,12 +120,18 @@ export function ChatInterface({
     async (e) => {
       e?.preventDefault();
       const trimmed = input.trim();
+
       if (!trimmed || isAsking) return;
 
       setInput("");
+      setError(null);
+
       try {
         await onAsk(trimmed);
-      } catch {}
+      } catch (err) {
+        console.error("Ask failed:", err);
+        setError(err.message || "Something went wrong");
+      }
     },
     [input, isAsking, onAsk]
   );
@@ -157,7 +170,7 @@ export function ChatInterface({
           <button
             onClick={onClear}
             disabled={isAsking}
-            className="flex items-center gap-1 text-ink-2 hover:text-ink text-xs px-2 py-1 rounded-input border border-border hover:bg-bg disabled:opacity-50"
+            className={`flex items-center gap-1 text-ink-2 hover:text-ink text-xs px-2 py-1 rounded-input border border-border hover:bg-bg ${BUTTON_BASE}`}
           >
             <RotateCcw size={12} />
             Clear
@@ -197,11 +210,21 @@ export function ChatInterface({
           </p>
         )}
 
+        {/* Error */}
+        {error && (
+          <div className="text-red-500 text-xs mb-2 text-center">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="flex gap-3 items-end">
           <textarea
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              if (error) setError(null);
+            }}
             onKeyDown={handleKeyDown}
             disabled={isAsking || !hasFiles}
             placeholder={
@@ -226,7 +249,7 @@ export function ChatInterface({
           <button
             type="submit"
             disabled={!canSend}
-            className="bg-brand text-white hover:bg-brand-dark rounded-input w-10 h-10 flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className={`bg-brand text-white hover:bg-brand-dark rounded-input w-10 h-10 flex items-center justify-center transition ${BUTTON_BASE}`}
           >
             <Send size={15} />
           </button>
