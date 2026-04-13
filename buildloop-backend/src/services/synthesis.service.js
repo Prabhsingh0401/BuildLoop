@@ -1,4 +1,4 @@
-import { model } from "../lib/gemini.js";
+import { geminiModel as model } from "../lib/gemini.js";
 import { parseSynthesisOutput } from "./prompts/synthesis.schema.js";
 import { Insight } from "../models/insight.model.js";
 
@@ -53,15 +53,7 @@ export async function synthesizeFeedback(projectId) {
         role: "user",
         parts: [
           {
-            text: `${SYNTHESIS_SYSTEM_PROMPT}
-
-Analyse the following feedback:
-
-${promptText}
-
-Return ONLY a valid JSON array.
-Do NOT include explanations.
-Do NOT include markdown.`,
+            text: `${SYNTHESIS_SYSTEM_PROMPT}\n\nAnalyse the following feedback:\n\n${promptText}\n\nReturn ONLY a valid JSON array.\nDo NOT include explanations.\nDo NOT include markdown.`,
           },
         ],
       },

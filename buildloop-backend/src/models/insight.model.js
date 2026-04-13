@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const InsightSchema = new mongoose.Schema({
   projectId: { 
-    type: mongoose.Schema.Types.ObjectId, 
+    type: String, 
     required: true 
   },
   feedbackIds: [{ 

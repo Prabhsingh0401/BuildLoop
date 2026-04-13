@@ -23,10 +23,10 @@ async function startServer() {
 
     // Health check - public endpoint
     app.get('/health', (req, res) => {
-      res.json({ 
+      res.json({
         success: true,
-        status: 'ok', 
-        timestamp: new Date().toISOString() 
+        status: 'ok',
+        timestamp: new Date().toISOString()
       });
     });
 

@@ -45,8 +45,9 @@ export async function ingestFeedback({ rawText, projectId, createdBy, source = '
     values: vectors[i],
     metadata: {
       projectId: projectId.toString(),
-      createdBy,
+      createdBy: createdBy || 'unknown',
       chunkIndex: i,
+      text: chunks[i],
     },
   }));
 
