@@ -4,12 +4,21 @@ import { ClerkProvider } from '@clerk/clerk-react';
 import Layout from '@/components/ui/Layout';
 import PageLoader from '@/components/ui/PageLoader';
 
-const Dashboard  = lazy(() => import('@/pages/Dashboard'));
-const Feedback   = lazy(() => import('@/pages/Feedback'));
-const Insights   = lazy(() => import('@/pages/Insights'));
-const Features   = lazy(() => import('@/pages/Features'));
-const Kanban     = lazy(() => import('@/pages/Kanban'));
-const Workspace  = lazy(() => import('@/pages/Workspace'));
+const delayedLazy = (importFunc, minDelay = 2000) => {
+  return lazy(() => 
+    Promise.all([
+      importFunc(),
+      new Promise(resolve => setTimeout(resolve, minDelay))
+    ]).then(([moduleExports]) => moduleExports)
+  );
+};
+
+const Dashboard  = delayedLazy(() => import('@/pages/Dashboard'));
+const Feedback   = delayedLazy(() => import('@/pages/Feedback'));
+const Insights   = delayedLazy(() => import('@/pages/Insights'));
+const Features   = delayedLazy(() => import('@/pages/Features'));
+const Kanban     = delayedLazy(() => import('@/pages/Kanban'));
+const Workspace  = delayedLazy(() => import('@/pages/Workspace'));
 
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 

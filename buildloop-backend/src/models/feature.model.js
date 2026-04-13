@@ -20,7 +20,7 @@ const FeatureSchema = new mongoose.Schema({
     auto: true
   },
   projectId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     required: true,
   },
   insightIds: [{
