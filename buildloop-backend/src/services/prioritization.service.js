@@ -35,15 +35,7 @@ Frequency: ${ins.frequency}`
         role: "user",
         parts: [
           {
-            text: `${PRIORITIZATION_SYSTEM_PROMPT}
-
-Here are the synthesised insights:
-
-${insightSummary}
-
-Return ONLY a valid JSON array.
-Do NOT include explanations.
-Do NOT include markdown.`,
+            text: `${PRIORITIZATION_SYSTEM_PROMPT}\n\nHere are the synthesised insights:\n\n${insightSummary}\n\nReturn ONLY a valid JSON array.\nDo NOT include explanations.\nDo NOT include markdown.`,
           },
         ],
       },
