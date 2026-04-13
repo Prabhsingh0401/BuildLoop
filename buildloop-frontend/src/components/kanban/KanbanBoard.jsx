@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import useProjectStore from '@/store/projectStore.js';
 import TaskCard from './TaskCard.jsx';
+import TaskDetailDrawer from './TaskDetailDrawer.jsx';
 import apiClient from '@/api/client.js';
 
 // Column definitions — order and labels are fixed per spec
@@ -10,18 +12,21 @@ const COLUMNS = [
     label:     'Todo',
     colorClass: 'bg-bg',
     headerClass: 'text-ink-2',
+    dotClass: 'bg-ink-3',
   },
   {
     key:       'in_progress',
     label:     'In Progress',
     colorClass: 'bg-brand-light',
     headerClass: 'text-brand',
+    dotClass: 'bg-brand',
   },
   {
     key:       'done',
     label:     'Done',
     colorClass: 'bg-success-light',
     headerClass: 'text-success',
+    dotClass: 'bg-success',
   },
 ];
 
@@ -46,6 +51,7 @@ async function moveTask({ taskId, status }) {
 export default function KanbanBoard() {
   const { activeProjectId } = useProjectStore();
   const queryClient         = useQueryClient();
+  const [selectedTask, setSelectedTask] = useState(null);
 
   // Fetch tasks
   const {
@@ -74,10 +80,13 @@ export default function KanbanBoard() {
   // PATCH mutation for status move
   const { mutate: updateStatus } = useMutation({
     mutationFn: moveTask,
-    onSuccess: () => {
+    onSuccess: (updatedTask) => {
       queryClient.invalidateQueries({
         queryKey: ['tasks', activeProjectId],
       });
+      if (selectedTask?._id === updatedTask._id) {
+        setSelectedTask(updatedTask);
+      }
     },
   });
 
@@ -86,8 +95,7 @@ export default function KanbanBoard() {
   }
 
   function handleCardClick(task) {
-    // Task detail view — to be wired up when detail drawer is built
-    console.log('Task clicked:', task);
+    setSelectedTask(task);
   }
 
   // No project selected state
@@ -137,20 +145,21 @@ export default function KanbanBoard() {
           <div
             key={col.key}
             className={`${col.colorClass} rounded-card flex flex-col
-                        flex-1 min-w-[280px] overflow-hidden`}
+                        flex-1 min-w-[300px] max-w-[380px]
+                        overflow-hidden border border-border`}
           >
             {/* Column header */}
             <div className="flex items-center justify-between
                             px-4 py-3 flex-shrink-0">
-              <span
-                className={`text-sm font-semibold ${col.headerClass}`}
-              >
-                {col.label}
-              </span>
-              <span
-                className="text-[11px] font-semibold bg-surface
-                           text-ink-3 px-2 py-0.5 rounded-pill"
-              >
+              <div className="flex items-center gap-2">
+                <div className={`w-2.5 h-2.5 rounded-full ${col.dotClass}`} />
+                <span className="text-sm font-semibold text-ink">
+                  {col.label}
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold bg-surface
+                               text-ink-3 px-2 py-0.5 rounded-pill
+                               border border-border">
                 {colTasks.length}
               </span>
             </div>
@@ -159,8 +168,8 @@ export default function KanbanBoard() {
             <div className="border-t border-border mx-4 flex-shrink-0" />
 
             {/* Cards — scroll independently */}
-            <div className="flex-1 overflow-y-auto px-3 py-3
-                            flex flex-col gap-2">
+            <div className="flex-1 overflow-y-auto px-3 pb-4 pt-2
+                            flex flex-col gap-2.5">
               {colTasks.length === 0 ? (
                 <p className="text-center text-ink-3 text-[12px]
                               py-6">
@@ -183,6 +192,18 @@ export default function KanbanBoard() {
           </div>
         );
       })}
+      
+      {selectedTask && (
+        <TaskDetailDrawer
+          task={selectedTask}
+          featureName={
+            selectedTask.featureId
+              ? featureMap[selectedTask.featureId]
+              : null
+          }
+          onClose={() => setSelectedTask(null)}
+        />
+      )}
     </div>
   );
 }
