@@ -1,19 +1,13 @@
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { SignedIn, SignedOut, SignInButton, useAuth } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
 import { 
-  Lightbulb, 
-  Sparkles, 
   Loader2, 
   AlertCircle, 
-  RefreshCw, 
   InboxIcon,
-  Lock
 } from 'lucide-react';
 import InsightCard, { InsightCardSkeleton } from '@/components/insights/InsightCard';
-import { fetchInsights, synthesizeInsights } from '@/services/insightService';
-import useProjectStore from '@/store/projectStore';
+import { useInsights } from '@/hooks/useInsights';
+import { toast } from 'sonner';
 
 const CARD_BASE =
   'bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)]';
@@ -86,11 +80,8 @@ function SynthesizeButton({ onClick, isLoading }) {
           : 'bg-[#1a1d23] hover:bg-black text-white shadow-md shadow-black/10'
         }`}
     >
-      {isLoading
-        ? <Loader2 className="w-4 h-4 animate-spin" />
-        : null
-      }
-      {isLoading ? 'Synthesizing…' : 'Synthesize Insights'}
+      {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+      {isLoading ? 'Analysing feedback…' : 'Synthesize Insights'}
     </button>
   );
 }
@@ -116,7 +107,7 @@ function ErrorState({ message, onRetry }) {
         onClick={onRetry}
         className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold bg-white border border-border text-ink hover:border-brand/40 hover:text-brand transition-all"
       >
-        <RefreshCw className="w-4 h-4" />
+        <Loader2 className="w-4 h-4" />
         Retry
       </button>
     </motion.div>
@@ -125,43 +116,23 @@ function ErrorState({ message, onRetry }) {
 
 /* ─── Main Content Wrapper ───────────────────────────────────── */
 function InsightsContent() {
-  const { activeProjectId } = useProjectStore();
-  const projectId = activeProjectId;
-  const queryClient = useQueryClient();
-  const { getToken } = useAuth();
-
-  const [isSynthesizing, setIsSynthesizing] = useState(false);
-  const [synthError, setSynthError] = useState(null);
-
-  const {
-    data,
-    isLoading,
-    isError,
-    error: queryError,
-    refetch,
-  } = useQuery({
-    queryKey: ['insights', projectId],
-    queryFn: async () => {
-      const token = await getToken();
-      return fetchInsights(projectId, token);
-    },
-    enabled: !!projectId,
-    select: (res) => res.data ?? [],
-  });
-
-  const insights = data ?? [];
+  const { 
+    insights, 
+    isLoading, 
+    isError, 
+    error, 
+    refetch, 
+    synthesize, 
+    isSynthesizing, 
+    synthError 
+  } = useInsights();
 
   const handleSynthesize = async () => {
-    setSynthError(null);
-    setIsSynthesizing(true);
     try {
-      const token = await getToken();
-      await synthesizeInsights(projectId, token);
-      await queryClient.invalidateQueries({ queryKey: ['insights', projectId] });
+      await synthesize();
+      toast.success('Insights synthesized successfully!');
     } catch (err) {
-      setSynthError(err.message);
-    } finally {
-      setIsSynthesizing(false);
+      toast.error(err.message || 'Failed to synthesize insights.');
     }
   };
 
@@ -218,7 +189,7 @@ function InsightsContent() {
           ))}
         </div>
       ) : isError ? (
-        <ErrorState message={queryError?.message ?? 'Unknown error'} onRetry={refetch} />
+        <ErrorState message={error?.message ?? 'Unknown error'} onRetry={refetch} />
       ) : insights.length === 0 ? (
         <EmptyState onSynthesize={handleSynthesize} isSynthesizing={isSynthesizing} />
       ) : (
@@ -226,7 +197,7 @@ function InsightsContent() {
           initial="initial"
           animate="animate"
           variants={{ animate: { transition: { staggerChildren: 0.07 } } }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start"
         >
           {insights.map((insight, i) => (
             <InsightCard key={insight._id ?? i} insight={insight} index={i} />
