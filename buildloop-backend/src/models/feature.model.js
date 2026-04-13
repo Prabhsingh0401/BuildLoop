@@ -19,6 +19,10 @@ const FeatureSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     auto: true
   },
+  projectId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+  },
   insightIds: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Insight'

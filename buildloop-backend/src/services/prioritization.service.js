@@ -1,8 +1,9 @@
-import { model } from "../lib/gemini.js";
+import { geminiModel as model } from "../lib/gemini.js";
 import { parsePrioritizationOutput } from "./prompts/prioritization.schema.js";
 import { Insight } from "../models/insight.model.js";
 import { Feature } from "../models/feature.model.js";
 import AppError from "../utils/AppError.js";
+import validateInsightIds from '../utils/validateInsightIds.js';
 
 // prioritizeInsights(projectId)
 export async function prioritizeInsights(projectId) {
@@ -65,6 +66,12 @@ Do NOT include markdown.`,
   const savedFeatures = [];
 
   for (const feature of features) {
+    feature.insightIds = insightIds;
+    if (feature.insightIds && feature.insightIds.length > 0) {
+      await validateInsightIds(
+        feature.insightIds.map((id) => id.toString())
+      );
+    }
     const doc = await Feature.findOneAndUpdate(
       { projectId, title: feature.title },
       {
