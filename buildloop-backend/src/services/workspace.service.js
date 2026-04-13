@@ -1,4 +1,4 @@
-import { model } from "../lib/gemini.js";
+import { geminiModel as model } from "../lib/gemini.js";
 import { embedQuery } from "./embedding.service.js";
 import { queryEmbedding } from "../lib/pinecone.js";
 import AppError from "../utils/AppError.js";
