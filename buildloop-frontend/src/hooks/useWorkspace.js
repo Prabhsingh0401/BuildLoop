@@ -1,7 +1,7 @@
 import { useState, useCallback }        from "react";
-import { useMutation, useQueryClient }  from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient }  from "@tanstack/react-query";
 import { useAuth }                      from "@clerk/clerk-react";
-import { uploadWorkspaceFiles, askWorkspace } from "../api/workspace.api.js";
+import { uploadWorkspaceFiles, askWorkspace, getWorkspaceFiles } from "../api/workspace.api.js";
 
 export function useWorkspace(projectId) {
   const { getToken } = useAuth();
@@ -10,11 +10,24 @@ export function useWorkspace(projectId) {
   // Conversation history 
   const [messages, setMessages] = useState([]);
 
+  // Fetch files query
+  const { data: filesData } = useQuery({
+    queryKey: ["workspace-files", projectId],
+    queryFn: async () => {
+      const token = await getToken();
+      const res = await getWorkspaceFiles(projectId, token);
+      return res.data || [];
+    },
+    enabled: !!projectId,
+  });
+
+  const files = filesData || [];
+
   // Upload mutation 
   const uploadMutation = useMutation({
-    mutationFn: async (files) => {
+    mutationFn: async (formData) => {
       const token = await getToken();
-      return uploadWorkspaceFiles(projectId, files, token);
+      return uploadWorkspaceFiles(projectId, formData, token);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspace-files", projectId] });
@@ -71,16 +84,25 @@ export function useWorkspace(projectId) {
     [messages, askMutation]
   );
 
+  // upload(formData)
+  const upload = useCallback(
+    async (formData) => {
+      return uploadMutation.mutateAsync(formData);
+    },
+    [uploadMutation]
+  );
+
   const clearHistory = useCallback(() => setMessages([]), []);
 
   return {
     messages,
     ask,
-    upload:      uploadMutation.mutateAsync,
+    upload,
     clearHistory,
     isAsking:    askMutation.isPending,
     isUploading: uploadMutation.isPending,
     askError:    askMutation.error,
     uploadError: uploadMutation.error,
+    files,
   };
 }

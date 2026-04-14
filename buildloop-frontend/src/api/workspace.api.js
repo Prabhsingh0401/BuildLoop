@@ -1,12 +1,29 @@
 const BASE_URL = `${import.meta.env.VITE_API_URL}/api/workspace`;
 
-// Upload workspace file
-export async function uploadWorkspaceFiles(projectId, files, token) {
+// Get uploaded files for a project
+export async function getWorkspaceFiles(projectId, token) {
   if (!projectId) throw new Error("projectId is required");
-  if (!files || files.length === 0) throw new Error("No files provided");
 
-  const formData = new FormData();
-  formData.append("file", files[0]); // backend expects "file"
+  const res = await fetch(`${BASE_URL}/${projectId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(data.message || "Failed to fetch files");
+  }
+
+  return data;
+}
+
+// Upload workspace file
+export async function uploadWorkspaceFiles(projectId, formData, token) {
+  if (!projectId) throw new Error("projectId is required");
+  if (!formData) throw new Error("FormData is required");
 
   const res = await fetch(`${BASE_URL}/${projectId}/upload`, {
     method: "POST",
@@ -50,25 +67,4 @@ export async function askWorkspace({ projectId, question, messages, token }) {
   }
 
   return data;
-}
-
-
-// Get uploaded files (used by left panel)
-export async function getWorkspaceFiles(projectId, token) {
-  if (!projectId) throw new Error("projectId is required");
-
-  const res = await fetch(`${BASE_URL}/${projectId}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    throw new Error(data.message || "Failed to fetch workspace files");
-  }
-
-  return data.data || [];
 }

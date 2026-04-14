@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 /**
  * @typedef {Object} WorkspaceContext
  * @property {mongoose.Types.ObjectId} _id
- * @property {mongoose.Types.ObjectId} projectId - Scoped to project
+ * @property {string} projectId - Scoped to project
  * @property {string} fileName - File name/identifier
  * @property {string} language - Programming language
  * @property {string} rawContent - Full file text content
@@ -18,8 +18,7 @@ const WorkspaceSchema = new mongoose.Schema({
     auto: true
   },
   projectId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Project',
+    type: String,
     required: true
   },
   fileName: {
