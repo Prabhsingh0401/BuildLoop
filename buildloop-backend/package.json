@@ -21,7 +21,7 @@
     "mongoose": "^9.3.3",
     "multer": "^2.1.1",
     "node-fetch": "^2.7.0",
-    "voyageai": "^0.2.1",
+    "voyageai": "^0.0.6",
     "zod": "^4.3.6"
   },
   "devDependencies": {
