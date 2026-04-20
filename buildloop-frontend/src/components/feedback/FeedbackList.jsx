@@ -62,7 +62,7 @@ export default function FeedbackList() {
   return (
     <div className={`${CARD_BASE} rounded-2xl h-full flex flex-col overflow-hidden`}>
       {/* Scrollable List */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+      <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] p-3 space-y-2">
         <AnimatePresence mode="popLayout">
           {feedbacks.map((fb, i) => (
             <FeedbackCard key={fb._id} fb={fb} index={i} />

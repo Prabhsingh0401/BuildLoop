@@ -50,8 +50,10 @@ export default function Feedback() {
               <History className="w-4 h-4 text-ink-3" />
               <h2 className="text-sm font-semibold text-ink">Recent Feedback</h2>
             </div>
-            <div className="flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden rounded-2xl relative">
               <FeedbackList />
+              {/* Fade out effect at the bottom for modern aesthetic */}
+              <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-[#f4f7fb] to-transparent pointer-events-none dark:from-[#0a0a0f]" />
             </div>
           </motion.div>
 
@@ -63,7 +65,7 @@ export default function Feedback() {
             transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="w-full lg:w-1/2 flex flex-col min-h-0"
           >
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 lg:pr-2 pb-2">
+            <div className="flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pr-1 lg:pr-2 pb-2">
               <FeedbackForm />
             </div>
           </motion.div>
