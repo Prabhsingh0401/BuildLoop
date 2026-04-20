@@ -6,6 +6,7 @@ import taskRoutes from './tasks.js';
 import featureRoutes from './features.routes.js';
 import projectRoutes from './project.routes.js';
 import integrationRoutes from './integration.routes.js';
+import teamMemberRoutes from './teamMember.routes.js';
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.use('/projects', projectRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/features', featureRoutes);
 router.use('/integrations', integrationRoutes);
+router.use('/team-members', teamMemberRoutes);
 
 router.get('/ping', (req, res) => {
   res.json({ success: true, message: 'pong' });

@@ -1,31 +1,26 @@
 import { Project } from '../models/project.model.js';
+import { TeamMember } from '../models/teamMember.model.js';
 import AppError from '../utils/AppError.js';
+import { createClerkClient } from '@clerk/backend';
+
+let clerk = null;
+const getClerk = () => {
+  if (!clerk) clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+  return clerk;
+};
 
 export const createProject = async (req, res, next) => {
   try {
     const { name, description } = req.body;
     const userId = req.auth?.userId;
 
-    if (!userId) {
-      throw new AppError('Unauthorized', 401);
-    }
+    if (!userId) throw new AppError('Unauthorized', 401);
+    if (!name) throw new AppError('Project name is required', 400);
 
-    if (!name) {
-      throw new AppError('Project name is required', 400);
-    }
-
-    const project = new Project({
-      name,
-      description,
-      createdBy: userId,
-    });
-
+    const project = new Project({ name, description, createdBy: userId });
     await project.save();
 
-    res.status(201).json({
-      success: true,
-      data: project,
-    });
+    res.status(201).json({ success: true, data: project });
   } catch (err) {
     next(err);
   }
@@ -34,16 +29,59 @@ export const createProject = async (req, res, next) => {
 export const getProjects = async (req, res, next) => {
   try {
     const userId = req.auth?.userId;
+    if (!userId) throw new AppError('Unauthorized', 401);
 
-    if (!userId) {
-      throw new AppError('Unauthorized', 401);
+    // 1. Projects this user created (PM view)
+    const ownedProjects = await Project.find({ createdBy: userId }).sort({ createdAt: -1 });
+
+    // 2. Projects this user was added to as a developer
+    //    Requires knowing their primary email — look it up via Clerk backend SDK
+    let assignedProjects = [];
+    try {
+      const clerkUser = await getClerk().users.getUser(userId);
+      const primaryEmail = clerkUser.emailAddresses.find(
+        (e) => e.id === clerkUser.primaryEmailAddressId
+      )?.emailAddress;
+
+      if (primaryEmail) {
+        // Find all teamMember records for this email
+        const memberships = await TeamMember.find({ email: primaryEmail.toLowerCase() });
+        const assignedProjectIds = memberships.map((m) => m.projectId);
+
+        if (assignedProjectIds.length > 0) {
+          // Fetch those projects (excluding ones the user already owns)
+          const ownedIds = ownedProjects.map((p) => p._id.toString());
+          const uniqueAssignedIds = assignedProjectIds.filter((id) => !ownedIds.includes(id));
+
+          if (uniqueAssignedIds.length > 0) {
+            assignedProjects = await Project.find({
+              _id: { $in: uniqueAssignedIds },
+            }).sort({ createdAt: -1 });
+
+            // Tag assigned projects so the frontend knows the user is a developer on them
+            assignedProjects = assignedProjects.map((p) => ({
+              ...p.toObject(),
+              role: memberships.find((m) => m.projectId === p._id.toString())?.role || 'Developer',
+              isAssigned: true,
+            }));
+          }
+        }
+      }
+    } catch (clerkErr) {
+      // If Clerk lookup fails, just return owned projects — don't crash
+      console.error('Clerk user lookup failed:', clerkErr.message);
     }
 
-    const projects = await Project.find({ createdBy: userId }).sort({ createdAt: -1 });
+    // Merge: owned first, then assigned (with isOwner flag for the frontend)
+    const ownedWithFlag = ownedProjects.map((p) => ({
+      ...p.toObject(),
+      isOwner: true,
+      isAssigned: false,
+    }));
 
     res.status(200).json({
       success: true,
-      data: projects,
+      data: [...ownedWithFlag, ...assignedProjects],
     });
   } catch (err) {
     next(err);
@@ -56,15 +94,9 @@ export const getProjectById = async (req, res, next) => {
     const userId = req.auth?.userId;
 
     const project = await Project.findOne({ _id: id, createdBy: userId });
+    if (!project) throw new AppError('Project not found', 404);
 
-    if (!project) {
-      throw new AppError('Project not found', 404);
-    }
-
-    res.status(200).json({
-      success: true,
-      data: project,
-    });
+    res.status(200).json({ success: true, data: project });
   } catch (err) {
     next(err);
   }
