@@ -11,7 +11,7 @@ const FeedbackSchema = new mongoose.Schema({
   }, // Clerk userId
   source: { 
     type: String, 
-    enum: ['paste', 'file', 'url'], 
+    enum: ['paste', 'file', 'url', 'slack', 'reddit'], 
     required: true 
   },
   rawText: { 

@@ -6,6 +6,7 @@
     "buildloop-backend"
   ],
   "scripts": {
+    "install-all": "npm install",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd buildloop-backend && npm run dev",
     "dev:frontend": "cd buildloop-frontend && npm run dev",

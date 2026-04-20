@@ -1,40 +1,77 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { ClerkProvider } from '@clerk/clerk-react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ClerkProvider, useAuth } from '@clerk/clerk-react';
 import Layout from '@/components/ui/Layout';
 import PageLoader from '@/components/ui/PageLoader';
+import { Toaster } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
-const delayedLazy = (importFunc, minDelay = 2000) => {
-  return lazy(() => 
+const delayedLazy = (importFunc, minDelay = 1500) => {
+  return lazy(() =>
     Promise.all([
       importFunc(),
-      new Promise(resolve => setTimeout(resolve, minDelay))
+      new Promise((resolve) => setTimeout(resolve, minDelay)),
     ]).then(([moduleExports]) => moduleExports)
   );
 };
 
-const Dashboard  = delayedLazy(() => import('@/pages/Dashboard'));
-const Feedback   = delayedLazy(() => import('@/pages/Feedback'));
-const Insights   = delayedLazy(() => import('@/pages/Insights'));
-const Features   = delayedLazy(() => import('@/pages/Features'));
-const Kanban     = delayedLazy(() => import('@/pages/Kanban'));
-const Workspace  = delayedLazy(() => import('@/pages/Workspace'));
+// Public
+const LandingPage = lazy(() => import('@/pages/LandingPage'));
+const SSOCallback  = lazy(() => import('@/pages/SSOCallback'));
+
+// Protected (delayed for loader)
+const Dashboard = delayedLazy(() => import('@/pages/Dashboard'));
+const Feedback  = delayedLazy(() => import('@/pages/Feedback'));
+const Insights  = delayedLazy(() => import('@/pages/Insights'));
+const Features  = delayedLazy(() => import('@/pages/Features'));
+const Kanban    = delayedLazy(() => import('@/pages/Kanban'));
+const Workspace = delayedLazy(() => import('@/pages/Workspace'));
 
 const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-import { Toaster } from 'sonner';
+/**
+ * Wraps protected routes. Waits for Clerk to finish loading before deciding
+ * whether to render the layout or redirect to the sign-in page.
+ */
+function ProtectedLayout() {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-[#f9f9f9] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-[#1a1d23]" />
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Layout />;
+}
 
 export default function App() {
   if (!publishableKey) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center p-6 text-center">
         <div className="max-w-md">
-          <h1 className="text-2xl font-bold mb-4">Configuration Error</h1>
+          <h1 className="text-2xl font-semibold mb-4">Configuration Error</h1>
           <p className="text-white/70 mb-6">
-            Missing Clerk configuration. Set <code className="bg-white/10 px-2 py-1 rounded">VITE_CLERK_PUBLISHABLE_KEY</code> in <code className="bg-white/10 px-2 py-1 rounded">buildloop-frontend/.env</code>
+            Missing Clerk configuration. Set{' '}
+            <code className="bg-white/10 px-2 py-1 rounded">VITE_CLERK_PUBLISHABLE_KEY</code> in{' '}
+            <code className="bg-white/10 px-2 py-1 rounded">buildloop-frontend/.env</code>
           </p>
           <p className="text-white/50 text-sm">
-            Get your key from <a href="https://dashboard.clerk.com" target="_blank" rel="noopener noreferrer" className="text-brand-light hover:text-brand underline">Clerk Dashboard</a>
+            Get your key from{' '}
+            <a
+              href="https://dashboard.clerk.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Clerk Dashboard
+            </a>
           </p>
         </div>
       </div>
@@ -47,14 +84,24 @@ export default function App() {
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route element={<Layout />}>
-              <Route index         element={<Dashboard />}  />
-              <Route path="/feedback"  element={<Feedback />}   />
-              <Route path="/insights"  element={<Insights />}   />
-              <Route path="/features"  element={<Features />}   />
-              <Route path="/kanban"    element={<Kanban />}     />
-              <Route path="/workspace" element={<Workspace />}  />
+            {/* ── Public: Landing / Sign-in ── */}
+            <Route path="/" element={<LandingPage />} />
+
+            {/* ── OAuth callback ── */}
+            <Route path="/sso-callback" element={<SSOCallback />} />
+
+            {/* ── Protected: Dashboard layout ── */}
+            <Route element={<ProtectedLayout />}>
+              <Route path="/dashboard"  element={<Dashboard />} />
+              <Route path="/feedback"   element={<Feedback />} />
+              <Route path="/insights"   element={<Insights />} />
+              <Route path="/features"   element={<Features />} />
+              <Route path="/kanban"     element={<Kanban />} />
+              <Route path="/workspace"  element={<Workspace />} />
             </Route>
+
+            {/* ── Catch-all ── */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
