@@ -25,7 +25,7 @@ import useProjectStore from '../../store/projectStore';
 import { fetchProjects, createProject } from '../../services/projectService';
 
 const NAV_ITEMS = [
-  { name: 'Dashboard', route: '/', icon: LayoutDashboard },
+  { name: 'Dashboard', route: '/dashboard', icon: LayoutDashboard },
   { name: 'Feedback', route: '/feedback', icon: MessageSquare },
   { name: 'Insights', route: '/insights', icon: Lightbulb },
   { name: 'Features', route: '/features', icon: ListChecks },

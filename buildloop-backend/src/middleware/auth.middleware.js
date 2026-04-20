@@ -21,8 +21,7 @@ export const verifyClerkAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization || '';
     const token = authHeader.replace(/^Bearer\s+/i, '');
-
-    if (!token) {
+    if (!token || token === 'undefined' || token === 'null') {
       // Allow requests without auth header to proceed (protect specific routes with requireAuth)
       req.auth = null;
       return next();
@@ -41,7 +40,6 @@ export const verifyClerkAuth = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Token verification failed:', error.message);
     // Don't fail on auth error - let individual routes decide
     req.auth = null;
     next();
