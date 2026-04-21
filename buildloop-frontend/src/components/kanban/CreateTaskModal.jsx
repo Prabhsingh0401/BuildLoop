@@ -1,3 +1,7 @@
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { X, Info, Check, Loader2, Calendar, Layers } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,6 +20,7 @@ const INITIAL_FORM = {
   description: '',
   tags: '',
   assignee: '',
+  featureId: '',
 };
 
 /** Fetch team members assigned to a specific project */
@@ -33,6 +38,15 @@ export default function CreateTaskModal() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('todo');
+
+  const { data: features = [] } = useQuery({
+    queryKey: ['features', activeProjectId],
+    queryFn: async () => {
+      const { data } = await apiClient.get(`/api/features/${activeProjectId}`);
+      return data.features;
+    },
+    enabled: !!activeProjectId,
+  });
 
   // Subtask state
   const [subtaskInput, setSubtaskInput] = useState('');
@@ -105,6 +119,8 @@ export default function CreateTaskModal() {
         description: form.description.trim(),
         tags,
         status,
+        assignee: form.assignee || null,
+        featureId: form.featureId || null,
         assignee:    form.assignee || null,
       });
 
@@ -295,6 +311,27 @@ export default function CreateTaskModal() {
                     </div>
                   </div>
 
+                  {/* Link to Feature */}
+                  {features.length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                        <Layers size={12} />
+                        Link to Feature
+                      </label>
+                      <select
+                        name="featureId"
+                        value={form.featureId}
+                        onChange={handleChange}
+                        className="w-full h-11 bg-white border border-gray-100 rounded-lg px-5 text-sm text-gray-900 focus:ring-2 focus:ring-gray-900/5 focus:border-gray-900 transition-all outline-none cursor-pointer appearance-none"
+                      >
+                        <option value="">No feature</option>
+                        {features.map((f) => (
+                          <option key={f._id} value={f._id}>{f.title}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   {/* Tags + Assignee */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -329,6 +366,7 @@ export default function CreateTaskModal() {
                     </div>
                   </div>
 
+                  {/* Date Info */}
                   {/* Date */}
                   <div className="p-4 bg-gray-50/50 border border-gray-100 rounded-lg flex items-center justify-between">
                     <div className="flex flex-col">

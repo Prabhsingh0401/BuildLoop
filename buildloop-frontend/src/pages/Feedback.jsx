@@ -10,47 +10,43 @@ const fadeUp = {
 
 export default function Feedback() {
   return (
-    <div className="relative h-[calc(100vh-180px)] flex flex-col overflow-hidden">
+    <div className="relative min-h-[calc(100vh-140px)] flex flex-col py-10 px-4">
       {/* Grid background */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#E2E8F0_1px,transparent_1px),linear-gradient(to_bottom,#E2E8F0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_10%,transparent_100%)] opacity-40 pointer-events-none" />
 
-      <div className="z-10 w-full max-w-7xl mx-auto flex flex-col h-full px-4 pt-16 md:pt-0">
-        {/* Page header */}
+      <div className="z-10 w-full max-w-7xl mx-auto space-y-8">
+        {/* Page Header */}
         <motion.div
           variants={fadeUp}
           initial="initial"
           animate="animate"
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-4"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-xl font-semibold text-ink">Feedback Ingestion</h1>
-              <p className="text-xs text-ink-3">
-                Submit, sync, and manage user feedback from multiple sources
-              </p>
-            </div>
+          <div>
+            <h1 className="text-[22px] font-semibold text-ink leading-tight">Feedback Ingestion</h1>
+            <p className="text-sm text-ink-3 mt-0.5">
+              Submit, sync, and manage user feedback from multiple sources
+            </p>
           </div>
         </motion.div>
 
         {/* Main Content - Horizontal Layout */}
-        <div className="flex flex-col lg:flex-row flex-1 gap-4 min-h-0 pb-4">
-          {/* Left Column: Feedback List (Compact) */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Left Column: Feedback List */}
           <motion.div
             variants={fadeUp}
             initial="initial"
             animate="animate"
             transition={{ delay: 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full lg:w-1/2 flex flex-col min-h-0 max-h-[50vh] lg:max-h-full"
+            className="w-full lg:w-1/2 flex flex-col"
           >
-            <div className="flex items-center gap-2 mb-3 shrink-0">
+            <div className="flex items-center gap-2 mb-4">
               <History className="w-4 h-4 text-ink-3" />
               <h2 className="text-sm font-semibold text-ink">Recent Feedback</h2>
             </div>
-            <div className="flex-1 min-h-0 overflow-hidden rounded-2xl relative">
+            <div className="flex-1 rounded-2xl overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40">
               <FeedbackList />
-              {/* Fade out effect at the bottom for modern aesthetic */}
-              <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-[#f4f7fb] to-transparent pointer-events-none dark:from-[#0a0a0f]" />
             </div>
           </motion.div>
 
@@ -60,9 +56,9 @@ export default function Feedback() {
             initial="initial"
             animate="animate"
             transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full lg:w-1/2 flex flex-col min-h-0"
+            className="w-full lg:w-1/2 flex flex-col"
           >
-            <div className="flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pr-1 lg:pr-2 pb-2">
+            <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-6">
               <FeedbackForm />
             </div>
           </motion.div>
