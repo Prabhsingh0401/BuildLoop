@@ -6,13 +6,71 @@ import { requireAuth } from '../middleware/auth.middleware.js';
 const router = express.Router();
 
 // Allowed fields for PATCH
-const ALLOWED_PATCH_FIELDS = ['status', 'assignee', 'tags', 'description', 'title', 'featureId'];
+const ALLOWED_PATCH_FIELDS = ['status', 'assignee', 'tags', 'description', 'title', 'featureId', 'parentTaskId'];
 
 // Valid status values from spec
 const VALID_STATUSES = ['todo', 'in-progress', 'review', 'done'];
 
+// ─── GET /api/tasks/:id/subtasks ──────────────────────────────────
+// IMPORTANT: Must be declared BEFORE /:projectId and /:id to avoid shadowing.
+// Returns all subtasks for a given parent task ID, sorted oldest-first.
+// Auth: required.
+router.get('/:id/subtasks', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid task id format' });
+    }
+    const subtasks = await Task.find({ parentTaskId: id }).sort({ createdAt: 1 });
+    return res.status(200).json({ subtasks });
+  } catch (err) {
+    console.error('[GET /api/tasks/:id/subtasks]', err);
+    return res.status(500).json({ error: 'Failed to fetch subtasks' });
+  }
+});
+
+// ─── POST /api/tasks/:id/subtasks ─────────────────────────────────
+// IMPORTANT: Must be declared BEFORE /:id to avoid shadowing.
+// Creates a subtask under the given parent task.
+// Required body: title
+// Optional body: description, assignee
+// Auth: required.
+router.post('/:id/subtasks', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid parent task id format' });
+    }
+
+    const parent = await Task.findById(id);
+    if (!parent) {
+      return res.status(404).json({ error: 'Parent task not found' });
+    }
+
+    const { title, description, assignee } = req.body;
+    if (!title || typeof title !== 'string' || title.trim() === '') {
+      return res.status(400).json({ error: 'title is required' });
+    }
+
+    const subtask = await Task.create({
+      title:        title.trim(),
+      projectId:    parent.projectId,
+      parentTaskId: id,
+      description:  description ?? '',
+      assignee:     assignee ?? null,
+      status:       'todo',
+      tags:         [],
+    });
+
+    return res.status(201).json({ subtask });
+  } catch (err) {
+    console.error('[POST /api/tasks/:id/subtasks]', err);
+    return res.status(500).json({ error: 'Failed to create subtask' });
+  }
+});
+
 // ─── GET /api/tasks/:projectId ────────────────────────────────────
-// Returns all TaskDocuments for a projectId, newest first.
+// Returns all top-level TaskDocuments for a projectId (no subtasks), newest first.
 // Returns 400 if projectId is not a valid ObjectId.
 // Auth: required.
 router.get('/:projectId', requireAuth, async (req, res) => {
@@ -23,7 +81,8 @@ router.get('/:projectId', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid projectId format' });
     }
 
-    const tasks = await Task.find({ projectId }).sort({ createdAt: -1 });
+    // Exclude subtasks (tasks with a parentTaskId set) from the board view
+    const tasks = await Task.find({ projectId, parentTaskId: null }).sort({ createdAt: -1 });
     return res.status(200).json({ tasks });
   } catch (err) {
     console.error('[GET /api/tasks/:projectId]', err);
@@ -167,6 +226,5 @@ router.delete('/:id', requireAuth, async (req, res) => {
     return res.status(500).json({ error: 'Failed to delete task' });
   }
 });
-
 
 export default router;

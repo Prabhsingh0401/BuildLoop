@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Dialog,
   DialogContent,
@@ -18,35 +18,112 @@ import {
   ShieldCheck,
   ExternalLink,
   Loader2,
-  Check
+  Check,
+  Plus,
+  ListTodo,
+  Circle,
+  Pencil,
 } from 'lucide-react';
 import apiClient from '@/api/client.js';
 import useProjectStore from '@/store/projectStore.js';
 
-export default function TaskDetailDrawer({ task, onClose, featureName }) {
+/* ─── Subtask Item ─────────────────────────────────────────────── */
+function SubtaskItem({ subtask, onToggle, onDelete }) {
+  const isDone = subtask.status === 'done';
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      className="flex items-center gap-3 group py-2 px-3 rounded-lg hover:bg-gray-50 transition-all"
+    >
+      <button
+        onClick={() => onToggle(subtask)}
+        className="flex-shrink-0 transition-transform hover:scale-110 active:scale-95"
+      >
+        {isDone ? (
+          <CheckCircle2 size={17} className="text-emerald-500" strokeWidth={2} />
+        ) : (
+          <Circle size={17} className="text-gray-300 hover:text-gray-500" strokeWidth={2} />
+        )}
+      </button>
+
+      <span
+        className={`flex-1 text-sm leading-snug transition-all ${
+          isDone ? 'line-through text-gray-400' : 'text-gray-700'
+        }`}
+      >
+        {subtask.title}
+      </span>
+
+      <button
+        onClick={() => onDelete(subtask._id)}
+        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-300 hover:text-red-400 rounded"
+      >
+        <Trash2 size={13} />
+      </button>
+    </motion.div>
+  );
+}
+
+/* ─── Main Drawer ──────────────────────────────────────────────── */
+export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpdated }) {
   const { activeProjectId } = useProjectStore();
   const queryClient = useQueryClient();
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task?.title || '');
   const [editedDescription, setEditedDescription] = useState(task?.description || '');
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Subtask state
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [addingSubtask, setAddingSubtask] = useState(false);
+  const subtaskInputRef = useRef(null);
+
   useEffect(() => {
     if (task) {
       setEditedTitle(task.title);
       setEditedDescription(task.description || '');
+      setIsEditing(false);
+      setNewSubtaskTitle('');
+      setAddingSubtask(false);
     }
-  }, [task]);
+  }, [task?._id]);
 
+  /* ── Fetch subtasks ── */
+  const { data: subtasksData, isLoading: subtasksLoading } = useQuery({
+    queryKey: ['subtasks', task?._id],
+    queryFn: async () => {
+      const { data } = await apiClient.get(`/api/tasks/${task._id}/subtasks`);
+      return data.subtasks ?? [];
+    },
+    enabled: !!task?._id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+  const subtasks = subtasksData ?? [];
+
+  const doneCount = subtasks.filter((s) => s.status === 'done').length;
+  const progress  = subtasks.length > 0 ? Math.round((doneCount / subtasks.length) * 100) : 0;
+
+  const SUBTASK_KEY = ['subtasks', task?._id];
+
+  /* ── Task mutations ── */
   const updateMutation = useMutation({
     mutationFn: async (updates) => {
       const { data } = await apiClient.patch(`/api/tasks/${task._id}`, updates);
       return data.task;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
+    onSuccess: (updated) => {
+      // Immediately patch the task inside the board cache so the card updates too
+      queryClient.setQueryData(['tasks', activeProjectId], (old) =>
+        old ? old.map((t) => (t._id === updated._id ? updated : t)) : old
+      );
       setIsEditing(false);
+      if (onTaskUpdated) onTaskUpdated(updated);
     },
   });
 
@@ -55,22 +132,62 @@ export default function TaskDetailDrawer({ task, onClose, featureName }) {
       await apiClient.delete(`/api/tasks/${task._id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
+      queryClient.setQueryData(['tasks', activeProjectId], (old) =>
+        old ? old.filter((t) => t._id !== task._id) : old
+      );
       onClose();
+    },
+  });
+
+  /* ── Subtask mutations ── */
+  const addSubtaskMutation = useMutation({
+    mutationFn: async (title) => {
+      const { data } = await apiClient.post(`/api/tasks/${task._id}/subtasks`, { title });
+      return data.subtask;
+    },
+    onSuccess: (newSubtask) => {
+      // Directly append the new subtask into the cache → instant render
+      queryClient.setQueryData(SUBTASK_KEY, (old) => [...(old ?? []), newSubtask]);
+      setNewSubtaskTitle('');
+      subtaskInputRef.current?.focus();
+    },
+  });
+
+  const toggleSubtaskMutation = useMutation({
+    mutationFn: async (subtask) => {
+      const newStatus = subtask.status === 'done' ? 'todo' : 'done';
+      const { data } = await apiClient.patch(`/api/tasks/${subtask._id}`, { status: newStatus });
+      return data.task;
+    },
+    onSuccess: (updated) => {
+      // Flip the status in cache immediately
+      queryClient.setQueryData(SUBTASK_KEY, (old) =>
+        old ? old.map((s) => (s._id === updated._id ? updated : s)) : old
+      );
+    },
+  });
+
+  const deleteSubtaskMutation = useMutation({
+    mutationFn: async (subtaskId) => {
+      await apiClient.delete(`/api/tasks/${subtaskId}`);
+      return subtaskId;
+    },
+    onSuccess: (deletedId) => {
+      // Remove from cache immediately
+      queryClient.setQueryData(SUBTASK_KEY, (old) =>
+        old ? old.filter((s) => s._id !== deletedId) : old
+      );
     },
   });
 
   if (!task) return null;
 
   const handleSave = () => {
-    updateMutation.mutate({
-      title: editedTitle,
-      description: editedDescription,
-    });
+    updateMutation.mutate({ title: editedTitle, description: editedDescription });
   };
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
+    if (window.confirm('Delete this task and all its subtasks?')) {
       setIsDeleting(true);
       deleteMutation.mutate();
     }
@@ -79,6 +196,12 @@ export default function TaskDetailDrawer({ task, onClose, featureName }) {
   const handleClose = () => {
     setIsEditing(false);
     onClose();
+  };
+
+  const handleAddSubtask = (e) => {
+    e?.preventDefault();
+    if (!newSubtaskTitle.trim()) return;
+    addSubtaskMutation.mutate(newSubtaskTitle.trim());
   };
 
   return (
@@ -108,21 +231,36 @@ export default function TaskDetailDrawer({ task, onClose, featureName }) {
                 </span>
               )}
             </div>
-            <button
-              onClick={handleClose}
-              className="w-10 h-10 rounded-lg bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm"
-            >
-              <X size={20} />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Edit toggle button */}
+              <button
+                onClick={() => setIsEditing((v) => !v)}
+                className={`flex items-center gap-1.5 px-3 h-9 rounded-lg text-sm font-medium transition-all ${
+                  isEditing
+                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    : 'bg-white border border-gray-100 text-gray-500 hover:text-gray-900 hover:border-gray-300'
+                }`}
+              >
+                <Pencil size={14} />
+                {isEditing ? 'Cancel Edit' : 'Edit'}
+              </button>
+              <button
+                onClick={handleClose}
+                className="w-10 h-10 rounded-lg bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Multi-column Content */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
 
-              {/* Main Content (Left Column) */}
+              {/* ── Left Column (Main) ── */}
               <div className="lg:col-span-7 p-8 space-y-8 border-r border-gray-50">
-                {/* Title Area */}
+
+                {/* Title */}
                 <div className="space-y-3">
                   {isEditing ? (
                     <input
@@ -157,7 +295,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName }) {
                     <textarea
                       value={editedDescription}
                       onChange={(e) => setEditedDescription(e.target.value)}
-                      rows={5}
+                      rows={4}
                       className="w-full bg-gray-50/50 p-4 rounded-lg border border-gray-100 text-gray-600 leading-relaxed text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/5 resize-none"
                       placeholder="Add more details..."
                     />
@@ -171,7 +309,120 @@ export default function TaskDetailDrawer({ task, onClose, featureName }) {
                   )}
                 </div>
 
-                {/* Timeline */}
+                {/* ── Subtasks ── */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[12px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                      <ListTodo size={16} />
+                      Subtasks
+                      {subtasks.length > 0 && (
+                        <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">
+                          {doneCount}/{subtasks.length}
+                        </span>
+                      )}
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setAddingSubtask(true);
+                        setTimeout(() => subtaskInputRef.current?.focus(), 50);
+                      }}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-gray-400 hover:text-gray-700 px-2 py-1 rounded-lg hover:bg-gray-100 transition-all"
+                    >
+                      <Plus size={13} />
+                      Add
+                    </button>
+                  </div>
+
+
+
+                  {/* Subtask list */}
+                  <div className="space-y-0.5 -mx-3">
+                    {subtasksLoading ? (
+                      <div className="flex justify-center py-4">
+                        <Loader2 size={16} className="animate-spin text-gray-300" />
+                      </div>
+                    ) : (
+                      <AnimatePresence initial={false}>
+                        {subtasks.map((subtask) => (
+                          <SubtaskItem
+                            key={subtask._id}
+                            subtask={subtask}
+                            onToggle={(s) => toggleSubtaskMutation.mutate(s)}
+                            onDelete={(id) => deleteSubtaskMutation.mutate(id)}
+                          />
+                        ))}
+                      </AnimatePresence>
+                    )}
+
+                    {subtasks.length === 0 && !addingSubtask && !subtasksLoading && (
+                      <button
+                        onClick={() => {
+                          setAddingSubtask(true);
+                          setTimeout(() => subtaskInputRef.current?.focus(), 50);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-gray-300 hover:text-gray-500 hover:bg-gray-50 rounded-lg transition-all border border-dashed border-gray-200 hover:border-gray-300"
+                      >
+                        <Plus size={14} />
+                        Add a subtask…
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Inline add subtask input */}
+                  <AnimatePresence>
+                    {addingSubtask && (
+                      <motion.form
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.15 }}
+                        onSubmit={handleAddSubtask}
+                        className="flex items-center gap-2 mt-1"
+                      >
+                        <div className="flex-shrink-0">
+                          <Circle size={17} className="text-gray-200" />
+                        </div>
+                        <input
+                          ref={subtaskInputRef}
+                          type="text"
+                          value={newSubtaskTitle}
+                          onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                          placeholder="Subtask title…"
+                          className="flex-1 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900/5 transition-all placeholder:text-gray-300"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              setAddingSubtask(false);
+                              setNewSubtaskTitle('');
+                            }
+                          }}
+                        />
+                        <button
+                          type="submit"
+                          disabled={addSubtaskMutation.isPending || !newSubtaskTitle.trim()}
+                          className="h-9 w-9 flex-shrink-0 rounded-lg bg-gray-900 text-white flex items-center justify-center hover:bg-black transition-all disabled:opacity-40"
+                        >
+                          {addSubtaskMutation.isPending ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Check size={14} strokeWidth={2.5} />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddingSubtask(false);
+                            setNewSubtaskTitle('');
+                          }}
+                          className="h-9 w-9 flex-shrink-0 rounded-lg border border-gray-100 text-gray-400 flex items-center justify-center hover:bg-gray-50 hover:text-gray-700 transition-all"
+                        >
+                          <X size={14} />
+                        </button>
+                      </motion.form>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Task History */}
                 <div className="space-y-4">
                   <div className="border-b border-gray-50 pb-3">
                     <h3 className="text-[12px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
@@ -190,7 +441,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName }) {
                 </div>
               </div>
 
-              {/* Sidebar (Right Column) */}
+              {/* ── Right Column (Sidebar) ── */}
               <div className="lg:col-span-5 p-8 bg-gray-50/20 space-y-6">
                 {/* Metadata Cards */}
                 <div className="grid grid-cols-2 gap-3">
@@ -209,6 +460,8 @@ export default function TaskDetailDrawer({ task, onClose, featureName }) {
                     </div>
                   </div>
                 </div>
+
+
 
                 {/* Assignee */}
                 <div className="space-y-3">
@@ -231,14 +484,18 @@ export default function TaskDetailDrawer({ task, onClose, featureName }) {
                     Tags
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {(task.tags || []).map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="px-3 py-1.5 rounded-md bg-white border border-gray-100 text-gray-700 text-xs font-medium"
-                      >
-                        {tag}
-                      </span>
-                    ))}
+                    {(task.tags || []).length === 0 ? (
+                      <span className="text-sm text-gray-300">No tags</span>
+                    ) : (
+                      (task.tags || []).map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1.5 rounded-md bg-white border border-gray-100 text-gray-700 text-xs font-medium"
+                        >
+                          {tag}
+                        </span>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>

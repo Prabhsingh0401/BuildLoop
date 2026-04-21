@@ -4,7 +4,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import TaskCard from './TaskCard.jsx';
 import { motion } from 'framer-motion';
 
-export default function Column({ id, title, tasks, dotClass, featureMap, onCardClick }) {
+export default function Column({ id, title, tasks, dotClass, featureMap, subtaskStatsMap = {}, onCardClick }) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
@@ -37,6 +37,7 @@ export default function Column({ id, title, tasks, dotClass, featureMap, onCardC
                 key={task._id}
                 task={task}
                 feature={featureMap?.[task.featureId]}
+                subtaskStats={subtaskStatsMap[task._id]}
                 onClick={() => onCardClick(task)}
               />
             ))}

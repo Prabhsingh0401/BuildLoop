@@ -2,9 +2,22 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { motion } from 'framer-motion';
-import { MessageSquare, Clock } from 'lucide-react';
+import { Clock, ListTodo } from 'lucide-react';
 
-export default function TaskCard({ task, feature, onClick }) {
+/** Returns a human-readable relative time string from a date */
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins  = Math.floor(diff / 60_000);
+  const hours = Math.floor(diff / 3_600_000);
+  const days  = Math.floor(diff / 86_400_000);
+
+  if (mins  < 1)  return 'just now';
+  if (mins  < 60) return `${mins}m`;
+  if (hours < 24) return `${hours}h`;
+  return `${days}d`;
+}
+
+export default function TaskCard({ task, feature, subtaskStats, onClick }) {
   const {
     attributes,
     listeners,
@@ -20,6 +33,11 @@ export default function TaskCard({ task, feature, onClick }) {
     opacity: isDragging ? 0.3 : 1,
   };
 
+  // subtaskStats is optionally passed in from the board to avoid N+1 queries
+  const total     = subtaskStats?.total     ?? 0;
+  const doneCount = subtaskStats?.doneCount ?? 0;
+  const progress  = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+
   return (
     <div
       ref={setNodeRef}
@@ -30,12 +48,8 @@ export default function TaskCard({ task, feature, onClick }) {
       className="group cursor-grab active:cursor-grabbing focus:outline-none"
     >
       <motion.div
-        whileHover={{ y: -2, shadow: "0 4px 12px rgba(0,0,0,0.05)" }}
-        className="
-          bg-white border border-gray-100 rounded-lg p-4
-          shadow-sm transition-all duration-200
-          hover:border-gray-200 hover:shadow-md
-        "
+        whileHover={{ y: -2 }}
+        className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm transition-all duration-200 hover:border-gray-200 hover:shadow-md"
       >
         <div className="flex flex-col gap-3">
           {/* Header Tags */}
@@ -55,7 +69,7 @@ export default function TaskCard({ task, feature, onClick }) {
             ))}
           </div>
 
-          {/* Content */}
+          {/* Title + description */}
           <div className="space-y-1">
             <h3 className="text-[14px] font-medium text-gray-900 leading-snug group-hover:text-black">
               {task.title}
@@ -67,13 +81,21 @@ export default function TaskCard({ task, feature, onClick }) {
             )}
           </div>
 
-          {/* Footer Metadata */}
+          {/* Subtask count — only when subtasks exist */}
+          {total > 0 && (
+            <div className="flex items-center gap-1 text-gray-400">
+              <ListTodo size={11} strokeWidth={2} />
+              <span className="text-[10px] font-medium">
+                {doneCount}/{total} subtasks
+              </span>
+            </div>
+          )}
+
+          {/* Footer */}
           <div className="flex items-center justify-between pt-2 mt-1 border-t border-gray-50">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 text-gray-400">
-                <Clock size={12} strokeWidth={2} />
-                <span className="text-[11px] font-medium">2d</span>
-              </div>
+            <div className="flex items-center gap-1 text-gray-400">
+              <Clock size={12} strokeWidth={2} />
+              <span className="text-[11px] font-medium">{timeAgo(task.createdAt)}</span>
             </div>
 
             {task.assignee ? (

@@ -11,6 +11,12 @@ const TaskSchema = new mongoose.Schema(
       ref: 'Feature',
       default: null,
     },
+    /** When set, this task is a subtask of the referenced parent task */
+    parentTaskId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Task',
+      default: null,
+    },
     title:       { type: String, required: true },
     description: { type: String, default: '' },
     assignee:    { type: String, default: null },

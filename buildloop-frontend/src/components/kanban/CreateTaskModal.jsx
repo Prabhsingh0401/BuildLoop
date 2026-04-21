@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { Plus, X, Tag, User, AlignLeft, Info, Check, Loader2, Calendar } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, X, Info, Check, Loader2, Calendar, ListTodo, Circle, CheckCircle2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -11,14 +11,18 @@ import useUIStore from '@/store/uiStore.js';
 import useProjectStore from '@/store/projectStore.js';
 import apiClient from '@/api/client.js';
 
-const TEAM_MEMBERS = ['Prableen', 'Jagjeevan', 'Eshaa', 'Arshdeep'];
-
 const INITIAL_FORM = {
   title: '',
   description: '',
   tags: '',
   assignee: '',
 };
+
+/** Fetch team members assigned to a specific project */
+async function fetchProjectMembers(projectId) {
+  const { data } = await apiClient.get(`/api/team-members?projectId=${projectId}`);
+  return data.data ?? [];
+}
 
 export default function CreateTaskModal() {
   const { activeModal, closeModal } = useUIStore();
@@ -30,7 +34,19 @@ export default function CreateTaskModal() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('todo');
 
+  // Subtask state
+  const [subtaskInput, setSubtaskInput] = useState('');
+  const [subtaskList, setSubtaskList] = useState([]); // [{ id, title }]
+  const subtaskRef = useRef(null);
+
   const isOpen = activeModal === 'createTask';
+
+  /** Fetch team members for the active project */
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['teamMembers', activeProjectId],
+    queryFn: () => fetchProjectMembers(activeProjectId),
+    enabled: isOpen && !!activeProjectId,
+  });
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -43,7 +59,22 @@ export default function CreateTaskModal() {
     setError('');
     setLoading(false);
     setStatus('todo');
+    setSubtaskInput('');
+    setSubtaskList([]);
     closeModal();
+  }
+
+  /** Add a subtask to the local list (not yet saved) */
+  function addSubtask() {
+    const title = subtaskInput.trim();
+    if (!title) return;
+    setSubtaskList((prev) => [...prev, { id: crypto.randomUUID(), title }]);
+    setSubtaskInput('');
+    subtaskRef.current?.focus();
+  }
+
+  function removeSubtask(id) {
+    setSubtaskList((prev) => prev.filter((s) => s.id !== id));
   }
 
   async function handleSubmit(e) {
@@ -67,24 +98,43 @@ export default function CreateTaskModal() {
     setError('');
 
     try {
-      await apiClient.post('/api/tasks', {
-        title: form.title.trim(),
-        projectId: activeProjectId,
+      // 1. Create the parent task
+      const { data: taskData } = await apiClient.post('/api/tasks', {
+        title:       form.title.trim(),
+        projectId:   activeProjectId,
         description: form.description.trim(),
         tags,
         status,
-        assignee: form.assignee || null,
+        assignee:    form.assignee || null,
       });
 
-      await queryClient.invalidateQueries({
-        queryKey: ['tasks', activeProjectId],
-      });
+      const newTaskId = taskData.task._id;
+
+      // 2. Create all subtasks in parallel and collect the returned objects
+      if (subtaskList.length > 0) {
+        const results = await Promise.all(
+          subtaskList.map((s) =>
+            apiClient.post(`/api/tasks/${newTaskId}/subtasks`, { title: s.title })
+          )
+        );
+
+        // 3. Pre-populate the subtask cache so the drawer shows them instantly
+        //    without a loading state or empty flash
+        const createdSubtasks = results.map((r) => r.data.subtask);
+        queryClient.setQueryData(['subtasks', newTaskId], createdSubtasks);
+      } else {
+        // Seed an empty list so the drawer doesn't show a spinner for a task with no subtasks
+        queryClient.setQueryData(['subtasks', newTaskId], []);
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
 
       handleClose();
+
     } catch (err) {
       const message =
-        err?.response?.data?.error || 
-        err?.response?.data?.message || 
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
         'Failed to create task. Try again.';
       setError(message);
     } finally {
@@ -94,7 +144,7 @@ export default function CreateTaskModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent 
+      <DialogContent
         showCloseButton={false}
         className="p-0 !bg-transparent border-none shadow-none focus:outline-none max-w-none sm:max-w-none w-full h-full flex items-center justify-center m-0 md:p-6 !translate-x-0 !translate-y-0 !top-0 !left-0"
         onInteractOutside={(e) => e.preventDefault()}
@@ -105,7 +155,7 @@ export default function CreateTaskModal() {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="w-full max-w-[850px] h-auto max-h-[90vh] bg-white shadow-[0_30px_100px_-20px_rgba(0,0,0,0.2)] flex flex-col relative z-[110] border border-gray-100 rounded-xl overflow-hidden m-auto"
+          className="w-full max-w-[900px] h-auto max-h-[90vh] bg-white shadow-[0_30px_100px_-20px_rgba(0,0,0,0.2)] flex flex-col relative z-[110] border border-gray-100 rounded-xl overflow-hidden m-auto"
         >
           {/* Header */}
           <div className="px-8 py-6 flex items-start justify-between border-b border-gray-50 bg-gray-50/20">
@@ -124,9 +174,10 @@ export default function CreateTaskModal() {
           <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
             <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left Column */}
+
+                {/* ── Left Column ── */}
                 <div className="space-y-6">
-                  {/* Task Name */}
+                  {/* Task Title */}
                   <div className="space-y-2">
                     <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Task Title</label>
                     <input
@@ -146,15 +197,81 @@ export default function CreateTaskModal() {
                     <textarea
                       name="description"
                       placeholder="Add more details about this task..."
-                      rows={5}
+                      rows={4}
                       value={form.description}
                       onChange={handleChange}
                       className="w-full bg-white border border-gray-100 rounded-lg p-4 text-sm text-gray-900 placeholder:text-gray-300 focus:ring-2 focus:ring-gray-900/5 focus:border-gray-900 transition-all outline-none resize-none leading-relaxed"
                     />
                   </div>
+
+                  {/* ── Subtasks ── */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                        <ListTodo size={13} />
+                        Subtasks
+                        {subtaskList.length > 0 && (
+                          <span className="text-[10px] font-semibold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+                            {subtaskList.length}
+                          </span>
+                        )}
+                      </label>
+                    </div>
+
+                    {/* Saved subtask list */}
+                    <AnimatePresence initial={false}>
+                      {subtaskList.map((subtask) => (
+                        <motion.div
+                          key={subtask.id}
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          transition={{ duration: 0.15 }}
+                          className="flex items-center gap-2.5 px-3 py-2 bg-gray-50 border border-gray-100 rounded-lg group"
+                        >
+                          <Circle size={14} className="text-gray-300 flex-shrink-0" />
+                          <span className="flex-1 text-sm text-gray-700 leading-snug">{subtask.title}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeSubtask(subtask.id)}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 p-0.5 rounded"
+                          >
+                            <X size={13} />
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+
+                    {/* Inline add input */}
+                    <div className="flex items-center gap-2">
+                      <Circle size={14} className="text-gray-200 flex-shrink-0" />
+                      <input
+                        ref={subtaskRef}
+                        type="text"
+                        value={subtaskInput}
+                        onChange={(e) => setSubtaskInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault(); // don't submit the form
+                            addSubtask();
+                          }
+                        }}
+                        placeholder="Add a subtask… (press Enter)"
+                        className="flex-1 h-9 bg-white border border-gray-100 rounded-lg px-3 text-sm text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-900/5 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={addSubtask}
+                        disabled={!subtaskInput.trim()}
+                        className="h-9 w-9 flex-shrink-0 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 flex items-center justify-center transition-all disabled:opacity-30"
+                      >
+                        <Plus size={15} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Right Column */}
+                {/* ── Right Column ── */}
                 <div className="space-y-6">
                   {/* Status Selection */}
                   <div className="space-y-2">
@@ -178,7 +295,7 @@ export default function CreateTaskModal() {
                     </div>
                   </div>
 
-                  {/* Categorization & Assignment */}
+                  {/* Tags + Assignee */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Tags</label>
@@ -199,21 +316,46 @@ export default function CreateTaskModal() {
                         className="w-full h-11 bg-white border border-gray-100 rounded-lg px-5 text-sm text-gray-900 focus:ring-2 focus:ring-gray-900/5 focus:border-gray-900 transition-all outline-none cursor-pointer appearance-none"
                       >
                         <option value="">Unassigned</option>
-                        {TEAM_MEMBERS.map((member) => (
-                          <option key={member} value={member}>{member}</option>
+                        {teamMembers.map((member) => (
+                          <option key={member._id} value={member.name || member.email}>
+                            {member.name || member.email}
+                            {member.role ? ` (${member.role})` : ''}
+                          </option>
                         ))}
+                        {teamMembers.length === 0 && (
+                          <option disabled value="">No members assigned to this project</option>
+                        )}
                       </select>
                     </div>
                   </div>
 
-                  {/* Date Info (Simplified) */}
+                  {/* Date */}
                   <div className="p-4 bg-gray-50/50 border border-gray-100 rounded-lg flex items-center justify-between">
                     <div className="flex flex-col">
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Added On</span>
-                      <span className="text-sm font-bold text-gray-900">{new Date().toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                      <span className="text-sm font-bold text-gray-900">
+                        {new Date().toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
                     </div>
                     <Calendar size={20} className="text-gray-300" />
                   </div>
+
+                  {/* Subtask preview summary (right column) */}
+                  {subtaskList.length > 0 && (
+                    <div className="p-4 bg-gray-50/50 border border-gray-100 rounded-lg space-y-2">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">
+                        {subtaskList.length} subtask{subtaskList.length !== 1 ? 's' : ''} queued
+                      </span>
+                      <div className="space-y-1.5">
+                        {subtaskList.map((s) => (
+                          <div key={s.id} className="flex items-center gap-2 text-xs text-gray-500">
+                            <Circle size={10} className="text-gray-300 flex-shrink-0" />
+                            <span className="truncate">{s.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -229,27 +371,36 @@ export default function CreateTaskModal() {
               )}
             </div>
 
-            {/* Actions */}
-            <div className="px-8 py-6 border-t border-gray-50 bg-gray-50/20 flex items-center justify-end gap-4">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="px-6 h-11 rounded-lg text-gray-500 font-bold text-sm bg-white border border-gray-100 hover:bg-gray-50 transition-all"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading || !form.title.trim()}
-                className="px-8 h-11 rounded-lg bg-gray-900 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-black shadow-[0_10px_20px_-5px_rgba(0,0,0,0.1)] transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                  <>
-                    <Check size={18} strokeWidth={3} />
-                    <span>Create Task</span>
-                  </>
-                )}
-              </button>
+            {/* Footer Actions */}
+            <div className="px-8 py-6 border-t border-gray-50 bg-gray-50/20 flex items-center justify-between gap-4">
+              <span className="text-xs text-gray-400">
+                {subtaskList.length > 0
+                  ? `${subtaskList.length} subtask${subtaskList.length !== 1 ? 's' : ''} will be created`
+                  : ''}
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="px-6 h-11 rounded-lg text-gray-500 font-bold text-sm bg-white border border-gray-100 hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || !form.title.trim()}
+                  className="px-8 h-11 rounded-lg bg-gray-900 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-black shadow-[0_10px_20px_-5px_rgba(0,0,0,0.1)] transition-all disabled:opacity-50 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  {loading ? <Loader2 className="animate-spin" size={20} /> : (
+                    <>
+                      <Check size={18} strokeWidth={3} />
+                      <span>
+                        Create Task{subtaskList.length > 0 ? ` + ${subtaskList.length} subtask${subtaskList.length !== 1 ? 's' : ''}` : ''}
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </form>
         </motion.div>
