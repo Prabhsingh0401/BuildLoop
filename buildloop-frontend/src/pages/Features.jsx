@@ -4,7 +4,7 @@ import FeatureTable from '@/components/features/FeatureTable.jsx';
 import apiClient from '@/api/client.js';
 
 async function fetchFeatures(projectId) {
-  const { data } = await apiClient.get(`/features/${projectId}`);
+  const { data } = await apiClient.get(`/api/features/${projectId}`);
   return data.features;
 }
 

@@ -1,128 +1,93 @@
-import { ChevronRight, ChevronLeft, User, Tag } from 'lucide-react';
+import React from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { motion } from 'framer-motion';
+import { MessageSquare, Clock } from 'lucide-react';
 
-export default function TaskCard({
-  task,
-  featureName,
-  onStatusMove,
-  onClick,
-}) {
-  const STATUS_ORDER = ['todo', 'in_progress', 'done'];
-  const currentIndex = STATUS_ORDER.indexOf(task.status);
-  const nextStatus = currentIndex < 2
-    ? STATUS_ORDER[currentIndex + 1]
-    : null;
-  const prevStatus = currentIndex > 0
-    ? STATUS_ORDER[currentIndex - 1]
-    : null;
+export default function TaskCard({ task, feature, onClick }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task._id });
 
-  const statusLabels = {
-    todo:        'Todo',
-    in_progress: 'In Progress',
-    done:        'Done',
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
   };
 
   return (
     <div
-      className="bg-surface border border-border rounded-card
-                 p-4 flex flex-col gap-2.5 cursor-pointer
-                 hover:border-brand/40 hover:shadow-md
-                 transition-all duration-200 group"
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
       onClick={onClick}
+      className="group cursor-grab active:cursor-grabbing focus:outline-none"
     >
-      {/* Top row: title + assignee initial */}
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-semibold text-ink leading-snug
-                      line-clamp-2 flex-1">
-          {task.title}
-        </p>
-        {task.assignee && (
-          <div className="w-6 h-6 rounded-full bg-brand flex items-center
-                          justify-center flex-shrink-0 mt-0.5">
-            <span className="text-white text-[10px] font-semibold">
-              {task.assignee.charAt(0).toUpperCase()}
-            </span>
+      <motion.div
+        whileHover={{ y: -2, shadow: "0 4px 12px rgba(0,0,0,0.05)" }}
+        className="
+          bg-white border border-gray-100 rounded-lg p-4
+          shadow-sm transition-all duration-200
+          hover:border-gray-200 hover:shadow-md
+        "
+      >
+        <div className="flex flex-col gap-3">
+          {/* Header Tags */}
+          <div className="flex flex-wrap gap-1.5">
+            {feature && (
+              <span className="px-2 py-0.5 rounded bg-gray-50 text-gray-500 text-[10px] font-medium uppercase tracking-wider border border-gray-100">
+                {feature}
+              </span>
+            )}
+            {(task.tags || []).slice(0, 2).map((tag, idx) => (
+              <span
+                key={idx}
+                className="px-2 py-0.5 rounded bg-gray-900 text-white text-[10px] font-medium uppercase tracking-wider"
+              >
+                {tag}
+              </span>
+            ))}
           </div>
-        )}
-      </div>
 
-      {/* Description preview — show if exists */}
-      {task.description && task.description.trim() !== '' && (
-        <p className="text-[12px] text-ink-3 line-clamp-2 leading-relaxed">
-          {task.description}
-        </p>
-      )}
+          {/* Content */}
+          <div className="space-y-1">
+            <h3 className="text-[14px] font-medium text-gray-900 leading-snug group-hover:text-black">
+              {task.title}
+            </h3>
+            {task.description && (
+              <p className="text-[12px] text-gray-500 line-clamp-2 leading-relaxed">
+                {task.description}
+              </p>
+            )}
+          </div>
 
-      {/* Tags */}
-      {task.tags && task.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {task.tags.slice(0, 3).map((tag) => (
-            <span
-              key={tag}
-              className="bg-brand-light text-brand text-[11px]
-                         font-semibold px-2 py-0.5 rounded-pill
-                         flex items-center gap-1"
-            >
-              <Tag size={9} />
-              {tag}
-            </span>
-          ))}
-          {task.tags.length > 3 && (
-            <span className="text-[11px] text-ink-3 px-1 py-0.5">
-              +{task.tags.length - 3}
-            </span>
-          )}
+          {/* Footer Metadata */}
+          <div className="flex items-center justify-between pt-2 mt-1 border-t border-gray-50">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 text-gray-400">
+                <Clock size={12} strokeWidth={2} />
+                <span className="text-[11px] font-medium">2d</span>
+              </div>
+            </div>
+
+            {task.assignee ? (
+              <div className="w-5 h-5 rounded bg-gray-900 flex items-center justify-center">
+                <span className="text-[9px] font-medium text-white">{task.assignee[0]}</span>
+              </div>
+            ) : (
+              <div className="w-5 h-5 rounded border border-gray-200 flex items-center justify-center">
+                <span className="text-[9px] text-gray-300">-</span>
+              </div>
+            )}
+          </div>
         </div>
-      )}
-
-      {/* Divider */}
-      <div className="border-t border-border" />
-
-      {/* Footer: feature name + navigation buttons */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 min-w-0">
-          {featureName ? (
-            <span className="text-[11px] text-ink-3 truncate
-                             max-w-[130px] flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full
-                               bg-brand-light flex-shrink-0" />
-              {featureName}
-            </span>
-          ) : (
-            <span className="text-[11px] text-ink-3 italic">
-              No linked feature
-            </span>
-          )}
-        </div>
-
-        {/* Two-way status navigation */}
-        <div
-          className="flex items-center gap-1"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {prevStatus && (
-            <button
-              onClick={() => onStatusMove(task._id, prevStatus)}
-              className="w-6 h-6 rounded-input flex items-center
-                         justify-center text-ink-3 hover:bg-bg
-                         hover:text-ink-2 transition-colors"
-              title={`Move back to ${statusLabels[prevStatus]}`}
-            >
-              <ChevronLeft size={13} strokeWidth={2} />
-            </button>
-          )}
-          {nextStatus && (
-            <button
-              onClick={() => onStatusMove(task._id, nextStatus)}
-              className="w-6 h-6 rounded-input flex items-center
-                         justify-center text-ink-3 hover:bg-brand-light
-                         hover:text-brand transition-colors"
-              title={`Move to ${statusLabels[nextStatus]}`}
-            >
-              <ChevronRight size={13} strokeWidth={2} />
-            </button>
-          )}
-        </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

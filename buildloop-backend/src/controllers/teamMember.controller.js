@@ -66,7 +66,7 @@ export const updateTeamMember = async (req, res, next) => {
     const member = await TeamMember.findOneAndUpdate(
       { _id: id, addedBy },
       { role, name },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!member) throw new AppError('Team member not found', 404);

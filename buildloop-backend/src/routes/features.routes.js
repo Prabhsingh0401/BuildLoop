@@ -81,7 +81,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
     const feature = await Feature.findByIdAndUpdate(
       id,
       { $set: body },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!feature) {

@@ -1,321 +1,274 @@
-import { useState, useEffect } from 'react';
-import { X, Tag, User, AlignLeft, Layers } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import useProjectStore from '@/store/projectStore.js';
+import { motion } from 'framer-motion';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  X,
+  Calendar,
+  User,
+  Tag,
+  Trash2,
+  CheckCircle2,
+  Hash,
+  ClipboardList,
+  ShieldCheck,
+  ExternalLink,
+  Loader2,
+  Check
+} from 'lucide-react';
 import apiClient from '@/api/client.js';
+import useProjectStore from '@/store/projectStore.js';
 
-const TEAM_MEMBERS = ['Prableen', 'Jagjeevan', 'Eshaa', 'Arshdeep'];
+export default function TaskDetailDrawer({ task, onClose, featureName }) {
+  const { activeProjectId } = useProjectStore();
+  const queryClient = useQueryClient();
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(task?.title || '');
+  const [editedDescription, setEditedDescription] = useState(task?.description || '');
+  const [isDeleting, setIsDeleting] = useState(false);
 
-const STATUS_OPTIONS = [
-  { value: 'todo',        label: 'Todo' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'done',        label: 'Done' },
-];
-
-const STATUS_STYLES = {
-  todo:        'bg-bg text-ink-2',
-  in_progress: 'bg-brand-light text-brand',
-  done:        'bg-success-light text-success',
-};
-
-async function updateTask({ taskId, updates }) {
-  const { data } = await apiClient.patch(`/tasks/${taskId}`, updates);
-  return data.task;
-}
-
-export default function TaskDetailDrawer({ task, featureName, onClose }) {
-  const { activeProjectId }  = useProjectStore();
-  const queryClient          = useQueryClient();
-
-  const [description, setDescription] = useState('');
-  const [tagsInput, setTagsInput]     = useState('');
-  const [assignee, setAssignee]       = useState('');
-  const [status, setStatus]           = useState('todo');
-  const [isDirty, setIsDirty]         = useState(false);
-  const [saveError, setSaveError]     = useState('');
-
-  // Sync local state when task prop changes
   useEffect(() => {
     if (task) {
-      setDescription(task.description || '');
-      setTagsInput((task.tags || []).join(', '));
-      setAssignee(task.assignee || '');
-      setStatus(task.status || 'todo');
-      setIsDirty(false);
-      setSaveError('');
+      setEditedTitle(task.title);
+      setEditedDescription(task.description || '');
     }
-  }, [task?._id]);
+  }, [task]);
 
-  const { mutate: saveTask, isLoading: saving } = useMutation({
-    mutationFn: updateTask,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['tasks', activeProjectId],
-      });
-      setIsDirty(false);
-      setSaveError('');
+  const updateMutation = useMutation({
+    mutationFn: async (updates) => {
+      const { data } = await apiClient.patch(`/api/tasks/${task._id}`, updates);
+      return data.task;
     },
-    onError: (err) => {
-      setSaveError(
-        err?.response?.data?.error || 'Failed to save. Try again.'
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
+      setIsEditing(false);
     },
   });
 
-  function handleSave() {
-    const tags = tagsInput
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean);
-
-    saveTask({
-      taskId: task._id,
-      updates: { description, tags, assignee: assignee || null, status },
-    });
-  }
-
-  function markDirty() {
-    setIsDirty(true);
-    setSaveError('');
-  }
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await apiClient.delete(`/api/tasks/${task._id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
+      onClose();
+    },
+  });
 
   if (!task) return null;
 
-  const createdAt = new Date(task.createdAt).toLocaleDateString('en-GB', {
-    day:   'numeric',
-    month: 'short',
-    year:  'numeric',
-  });
+  const handleSave = () => {
+    updateMutation.mutate({
+      title: editedTitle,
+      description: editedDescription,
+    });
+  };
 
-  const updatedAt = new Date(task.updatedAt).toLocaleDateString('en-GB', {
-    day:   'numeric',
-    month: 'short',
-    year:  'numeric',
-  });
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      setIsDeleting(true);
+      deleteMutation.mutate();
+    }
+  };
+
+  const handleClose = () => {
+    setIsEditing(false);
+    onClose();
+  };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal panel */}
-      <div
-        className="relative w-full max-w-[500px] max-h-[90vh] bg-surface
-                   border border-border rounded-xl flex flex-col
-                   shadow-2xl overflow-hidden"
+    <Dialog open={!!task} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent
+        showCloseButton={false}
+        className="p-0 !bg-transparent border-none shadow-none focus:outline-none max-w-none sm:max-w-none w-full h-full flex items-center justify-center m-0 md:p-6 !translate-x-0 !translate-y-0 !top-0 !left-0"
+        onInteractOutside={(e) => e.preventDefault()}
       >
-        {/* Drawer header */}
-        <div className="flex items-start justify-between p-5
-                        border-b border-border flex-shrink-0">
-          <div className="flex flex-col gap-1.5 flex-1 mr-4">
-            <p className="text-base font-semibold text-ink leading-snug">
-              {task.title}
-            </p>
-            {featureName && (
-              <span className="text-[12px] text-ink-3 flex items-center
-                               gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand
-                                 inline-block" />
-                {featureName}
+        <DialogTitle className="sr-only">Task Details</DialogTitle>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          className="w-full max-w-[900px] h-auto max-h-[90vh] bg-white shadow-[0_30px_100px_-20px_rgba(0,0,0,0.2)] flex flex-col relative z-[110] border border-gray-100 rounded-xl overflow-hidden m-auto"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-8 py-6 border-b border-gray-50 flex-shrink-0 bg-gray-50/30">
+            <div className="flex flex-wrap gap-3">
+              <span className="px-3 py-1.5 rounded-full bg-gray-900 text-white text-[11px] font-semibold uppercase tracking-wider">
+                {task.status.replace('-', ' ')}
               </span>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="text-ink-3 hover:text-ink transition-colors
-                       flex-shrink-0 mt-0.5 p-1 rounded hover:bg-bg"
-          >
-            <X size={18} strokeWidth={2} />
-          </button>
-        </div>
-
-        {/* Drawer body — scrollable */}
-        <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
-
-          {/* Status selector */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[11px] font-semibold text-ink-3
-                              uppercase tracking-wide">
-              Status
-            </label>
-            <div className="flex gap-2">
-              {STATUS_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => {
-                    setStatus(opt.value);
-                    markDirty();
-                  }}
-                  className={[
-                    'text-[12px] font-semibold px-3 py-1.5 rounded-pill',
-                    'border transition-all',
-                    status === opt.value
-                      ? `${STATUS_STYLES[opt.value]} border-transparent`
-                      : 'bg-bg text-ink-3 border-border hover:border-brand/30',
-                  ].join(' ')}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Assignee */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[11px] font-semibold text-ink-3
-                              uppercase tracking-wide flex items-center
-                              gap-1.5">
-              <User size={12} />
-              Assignee
-            </label>
-            <select
-              value={assignee}
-              onChange={(e) => { setAssignee(e.target.value); markDirty(); }}
-              className="border border-border rounded-input px-3 py-2
-                         text-sm text-ink bg-surface
-                         focus-visible:outline-none
-                         focus-visible:ring-2 focus-visible:ring-brand"
-            >
-              <option value="">Unassigned</option>
-              {TEAM_MEMBERS.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Description */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[11px] font-semibold text-ink-3
-                              uppercase tracking-wide flex items-center
-                              gap-1.5">
-              <AlignLeft size={12} />
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => { setDescription(e.target.value); markDirty(); }}
-              placeholder="Add a description…"
-              rows={4}
-              className="border border-border rounded-input px-3 py-2
-                         text-sm text-ink placeholder:text-ink-3
-                         bg-surface resize-none
-                         focus-visible:outline-none
-                         focus-visible:ring-2 focus-visible:ring-brand"
-            />
-          </div>
-
-          {/* Tags */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[11px] font-semibold text-ink-3
-                              uppercase tracking-wide flex items-center
-                              gap-1.5">
-              <Tag size={12} />
-              Tags
-              <span className="text-ink-3 font-normal normal-case
-                               tracking-normal">
-                (comma-separated)
-              </span>
-            </label>
-            <input
-              value={tagsInput}
-              onChange={(e) => { setTagsInput(e.target.value); markDirty(); }}
-              placeholder="e.g. backend, phase2, auth"
-              className="border border-border rounded-input px-3 py-2
-                         text-sm text-ink placeholder:text-ink-3
-                         bg-surface focus-visible:outline-none
-                         focus-visible:ring-2 focus-visible:ring-brand"
-            />
-            {/* Live tag preview */}
-            {tagsInput.trim() && (
-              <div className="flex flex-wrap gap-1 mt-1">
-                {tagsInput.split(',').map((t) => t.trim()).filter(Boolean)
-                  .map((tag) => (
-                    <span
-                      key={tag}
-                      className="bg-brand-light text-brand text-[11px]
-                                 font-semibold px-2 py-0.5 rounded-pill"
-                    >
-                      {tag}
-                    </span>
-                  ))
-                }
-              </div>
-            )}
-          </div>
-
-          {/* Meta info */}
-          <div className="flex flex-col gap-2 pt-2 border-t border-border">
-            <label className="text-[11px] font-semibold text-ink-3
-                              uppercase tracking-wide flex items-center
-                              gap-1.5">
-              <Layers size={12} />
-              Activity
-            </label>
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between text-[12px]">
-                <span className="text-ink-3">Created</span>
-                <span className="text-ink-2 font-semibold">{createdAt}</span>
-              </div>
-              <div className="flex justify-between text-[12px]">
-                <span className="text-ink-3">Last updated</span>
-                <span className="text-ink-2 font-semibold">{updatedAt}</span>
-              </div>
-              {task.assignee && (
-                <div className="flex justify-between text-[12px]">
-                  <span className="text-ink-3">Assigned to</span>
-                  <span className="text-ink-2 font-semibold">
-                    {task.assignee}
-                  </span>
-                </div>
+              {featureName && (
+                <span className="px-3 py-1.5 rounded-full bg-white border border-gray-100 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">
+                  {featureName}
+                </span>
               )}
             </div>
+            <button
+              onClick={handleClose}
+              className="w-10 h-10 rounded-lg bg-white border border-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm"
+            >
+              <X size={20} />
+            </button>
           </div>
 
-        </div>
+          {/* Multi-column Content */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
 
-        {/* Drawer footer — save button, only shows when dirty */}
-        {isDirty && (
-          <div className="border-t border-border p-4 flex flex-col
-                          gap-2 flex-shrink-0">
-            {saveError && (
-              <p className="text-sm text-danger">{saveError}</p>
-            )}
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => {
-                  setDescription(task.description || '');
-                  setTagsInput((task.tags || []).join(', '));
-                  setAssignee(task.assignee || '');
-                  setStatus(task.status || 'todo');
-                  setIsDirty(false);
-                  setSaveError('');
-                }}
-                className="border border-border text-ink-2 hover:bg-bg
-                           rounded-input px-4 py-2 text-sm"
-              >
-                Discard
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-brand text-white hover:bg-brand-dark
-                           rounded-input px-4 py-2 text-sm font-semibold
-                           disabled:opacity-50 disabled:cursor-not-allowed
-                           transition-colors"
-              >
-                {saving ? 'Saving…' : 'Save Changes'}
-              </button>
+              {/* Main Content (Left Column) */}
+              <div className="lg:col-span-7 p-8 space-y-8 border-r border-gray-50">
+                {/* Title Area */}
+                <div className="space-y-3">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedTitle}
+                      onChange={(e) => setEditedTitle(e.target.value)}
+                      className="text-3xl font-semibold text-gray-900 tracking-tight leading-tight w-full bg-transparent border-b border-gray-200 focus:outline-none focus:border-gray-900 pb-2"
+                    />
+                  ) : (
+                    <h2
+                      className="text-3xl font-semibold text-gray-900 tracking-tight leading-tight cursor-pointer hover:text-gray-700"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      {task.title}
+                    </h2>
+                  )}
+                  <div className="flex items-center gap-6 text-[13px] text-gray-400 font-medium">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={16} className="text-gray-300" />
+                      <span>{new Date(task.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-3 pt-2">
+                  <h3 className="text-[12px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                    <ClipboardList size={16} />
+                    Description
+                  </h3>
+                  {isEditing ? (
+                    <textarea
+                      value={editedDescription}
+                      onChange={(e) => setEditedDescription(e.target.value)}
+                      rows={5}
+                      className="w-full bg-gray-50/50 p-4 rounded-lg border border-gray-100 text-gray-600 leading-relaxed text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/5 resize-none"
+                      placeholder="Add more details..."
+                    />
+                  ) : (
+                    <p
+                      className="text-gray-600 leading-relaxed text-sm bg-gray-50/50 p-4 rounded-lg border border-gray-50 cursor-pointer"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      {task.description || 'No additional context provided.'}
+                    </p>
+                  )}
+                </div>
+
+                {/* Timeline */}
+                <div className="space-y-4">
+                  <div className="border-b border-gray-50 pb-3">
+                    <h3 className="text-[12px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                      <ExternalLink size={16} />
+                      Task History
+                    </h3>
+                  </div>
+                  <div className="space-y-4 relative ml-3">
+                    <div className="absolute left-[-13px] top-2 bottom-2 w-px bg-gray-100" />
+                    <div className="flex flex-col gap-1 relative">
+                      <div className="absolute left-[-18px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white bg-gray-900 shadow-sm" />
+                      <span className="text-sm font-medium text-gray-900">Task Created</span>
+                      <span className="text-[11px] text-gray-400">{new Date(task.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sidebar (Right Column) */}
+              <div className="lg:col-span-5 p-8 bg-gray-50/20 space-y-6">
+                {/* Metadata Cards */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-4 rounded-lg bg-white border border-gray-100">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block mb-2">Task ID</span>
+                    <div className="flex items-center gap-2">
+                      <Hash size={16} className="text-gray-900" />
+                      <span className="font-medium text-gray-900 text-sm">{task._id.slice(-8).toUpperCase()}</span>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-white border border-gray-100">
+                    <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block mb-2">Priority</span>
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-gray-900" />
+                      <span className="font-medium text-gray-900 text-sm">Standard</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Assignee */}
+                <div className="space-y-3">
+                  <div className="text-[12px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                    <User size={16} />
+                    Assigned To
+                  </div>
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white border border-gray-100">
+                    <div className="w-9 h-9 rounded-full bg-gray-900 flex items-center justify-center text-white font-semibold text-xs">
+                      {(task.assignee || 'U')[0]}
+                    </div>
+                    <span className="font-medium text-gray-900 text-sm">{task.assignee || 'Unassigned'}</span>
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div className="space-y-3">
+                  <div className="text-[12px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                    <Tag size={16} />
+                    Tags
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(task.tags || []).map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1.5 rounded-md bg-white border border-gray-100 text-gray-700 text-xs font-medium"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        )}
-      </div>
-    </div>
+
+          {/* Footer */}
+          <div className="px-8 py-5 border-t border-gray-50 flex items-center justify-end gap-4 bg-white shrink-0">
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="px-6 h-11 rounded-lg border border-red-100 text-red-500 font-medium text-sm hover:bg-red-50 transition-all flex items-center gap-2 disabled:opacity-50"
+            >
+              {isDeleting ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
+              Delete
+            </button>
+
+            {isEditing && (
+              <button
+                onClick={handleSave}
+                disabled={updateMutation.isPending}
+                className="px-8 h-11 rounded-lg bg-gray-900 text-white font-medium text-sm hover:bg-black transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 disabled:opacity-50 shadow-sm"
+              >
+                {updateMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />}
+                Save Changes
+              </button>
+            )}
+          </div>
+        </motion.div>
+      </DialogContent>
+    </Dialog>
   );
 }

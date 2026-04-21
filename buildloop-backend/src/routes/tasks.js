@@ -5,11 +5,11 @@ import { requireAuth } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-// Allowed fields for PATCH — anything outside this list returns 400
-const ALLOWED_PATCH_FIELDS = ['status', 'assignee', 'tags', 'description'];
+// Allowed fields for PATCH
+const ALLOWED_PATCH_FIELDS = ['status', 'assignee', 'tags', 'description', 'title', 'featureId'];
 
 // Valid status values from spec
-const VALID_STATUSES = ['todo', 'in_progress', 'done'];
+const VALID_STATUSES = ['todo', 'in-progress', 'review', 'done'];
 
 // ─── GET /api/tasks/:projectId ────────────────────────────────────
 // Returns all TaskDocuments for a projectId, newest first.
@@ -46,6 +46,7 @@ router.post('/', requireAuth, async (req, res) => {
       tags,
       assignee,
       featureId,
+      status,
     } = req.body;
 
     // Validate required fields
@@ -77,18 +78,17 @@ router.post('/', requireAuth, async (req, res) => {
       tags:        Array.isArray(tags) ? tags : [],
       assignee:    assignee ?? null,
       featureId:   featureId ?? null,
-      status:      'todo',
+      status:      status ?? 'todo',
     });
 
     return res.status(201).json({ task });
   } catch (err) {
-    console.error('[POST /api/tasks]', err);
-    return res.status(500).json({ error: 'Failed to create task' });
+    return res.status(err.name === 'ValidationError' ? 400 : 500).json({ error: err.message || 'Failed to create task' });
   }
 });
 
 // ─── PATCH /api/tasks/:id ─────────────────────────────────────────
-// Updates allowed fields only: status, assignee, tags, description.
+// Updates allowed fields: status, assignee, tags, description, title, featureId.
 // Returns 400 if any field outside the allowed list is sent.
 // Returns 400 if status value is not a valid enum value.
 // Returns 404 if task not found.
@@ -129,7 +129,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
     const task = await Task.findByIdAndUpdate(
       id,
       { $set: body },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!task) {
@@ -142,5 +142,31 @@ router.patch('/:id', requireAuth, async (req, res) => {
     return res.status(500).json({ error: 'Failed to update task' });
   }
 });
+
+// ─── DELETE /api/tasks/:id ───────────────────────────────────────
+// Deletes a task by ID.
+// Returns 404 if task not found.
+// Auth: required.
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid task id format' });
+    }
+
+    const task = await Task.findByIdAndDelete(id);
+
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    return res.status(200).json({ message: 'Task deleted successfully' });
+  } catch (err) {
+    console.error('[DELETE /api/tasks/:id]', err);
+    return res.status(500).json({ error: 'Failed to delete task' });
+  }
+});
+
 
 export default router;
