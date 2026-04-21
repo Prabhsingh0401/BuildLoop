@@ -193,14 +193,23 @@ export default function IntegrationButtons() {
     setShowSetup(type);
   };
 
-  const renderSlackIcon = () => (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm9.124 2.521a2.528 2.528 0 0 1 2.52-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.52V8.834zm-1.27 0a2.528 2.528 0 0 1-2.522 2.521 2.528 2.528 0 0 1-2.521-2.521V2.522A2.528 2.528 0 0 1 13.986 0a2.528 2.528 0 0 1 2.522 2.522v6.312zm-2.522 9.124a2.528 2.528 0 0 1 2.522 2.52 2.528 2.528 0 0 1-2.522 2.523 2.528 2.528 0 0 1-2.521-2.523v-2.52h2.521zm0-1.27a2.528 2.528 0 0 1-2.521-2.522 2.528 2.528 0 0 1 2.521-2.521h6.313A2.528 2.528 0 0 1 24 13.986a2.528 2.528 0 0 1-2.522 2.522h-6.313z" />
+  const renderSlackIcon = (isConnected) => (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isConnected ? 'none' : 'currentColor'}>
+      {isConnected ? (
+        <>
+          <path d="M5.04 15.17a2.52 2.52 0 10-2.52 2.52h2.52v-2.52zM6.31 15.17v6.31a2.52 2.52 0 105.04 0v-6.31H6.31z" fill="#36C5F0" />
+          <path d="M8.83 5.04a2.52 2.52 0 102.52-2.52v2.52H8.83zM8.83 6.31H2.52a2.52 2.52 0 100 5.04h6.31V6.31z" fill="#2EB67D" />
+          <path d="M18.96 8.83a2.52 2.52 0 102.52-2.52h-2.52v2.52zM17.69 8.83V2.52a2.52 2.52 0 10-5.04 0v6.31h5.04z" fill="#E01E5A" />
+          <path d="M15.17 18.96a2.52 2.52 0 10-2.52 2.52v-2.52h2.52zM15.17 17.69h6.31a2.52 2.52 0 100-5.04h-6.31v5.04z" fill="#ECB22E" />
+        </>
+      ) : (
+        <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm9.124 2.521a2.528 2.528 0 0 1 2.52-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.52V8.834zm-1.27 0a2.528 2.528 0 0 1-2.522 2.521 2.528 2.528 0 0 1-2.521-2.521V2.522A2.528 2.528 0 0 1 13.986 0a2.528 2.528 0 0 1 2.522 2.522v6.312zm-2.522 9.124a2.528 2.528 0 0 1 2.522 2.52 2.528 2.528 0 0 1-2.522 2.523 2.528 2.528 0 0 1-2.521-2.523v-2.52h2.521zm0-1.27a2.528 2.528 0 0 1-2.521-2.522 2.528 2.528 0 0 1 2.521-2.521h6.313A2.528 2.528 0 0 1 24 13.986a2.528 2.528 0 0 1-2.522 2.522h-6.313z" />
+      )}
     </svg>
   );
 
-  const renderRedditIcon = () => (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+  const renderRedditIcon = (isConnected) => (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill={isConnected ? '#FF4500' : 'currentColor'}>
       <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.25-1.25-1.25zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
     </svg>
   );
@@ -211,10 +220,10 @@ export default function IntegrationButtons() {
 
     return (
       <div className={`flex items-center gap-2 px-3 py-2.5 ${MINI_CARD} transition-all duration-300 ${
-        isConnected ? 'border-emerald-300/40 bg-emerald-50/30' : ''
+        isConnected ? 'border-border bg-white shadow-sm' : 'grayscale opacity-60'
       }`}>
         <div className={`relative w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-          isConnected ? 'text-emerald-600 bg-emerald-100/60' : 'text-ink-3 bg-ink/5'
+          isConnected ? 'bg-transparent' : 'text-ink-3 bg-ink/5'
         }`}>
           {icon}
           {isConnected && (
@@ -225,14 +234,14 @@ export default function IntegrationButtons() {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-ink truncate capitalize">{type}</p>
+          <p className={`text-xs font-semibold truncate capitalize ${isConnected ? 'text-ink' : 'text-ink-3'}`}>{type}</p>
           {isLoading ? (
             <p className="text-[10px] text-ink-3">Checking…</p>
           ) : isConnected ? (
-            <p className="text-[10px] text-emerald-600 font-medium truncate">
+            <p className="text-[10px] text-ink-2 font-medium truncate">
               {type === 'slack' ? `#${data.channelName}` : `r/${data.subredditName}`}
               {' · '}
-              <span className="text-emerald-500">Connected</span>
+              <span className="text-emerald-500 font-semibold">Connected</span>
             </p>
           ) : (
             <p className="text-[10px] text-ink-3">Not connected</p>
@@ -272,8 +281,8 @@ export default function IntegrationButtons() {
 
       {/* Compact Cards */}
       <div className="grid grid-cols-2 gap-2">
-        <IntegrationMiniCard type="slack" icon={renderSlackIcon()} data={integrations.slack} />
-        <IntegrationMiniCard type="reddit" icon={renderRedditIcon()} data={integrations.reddit} />
+        <IntegrationMiniCard type="slack" icon={renderSlackIcon(integrations.slack.connected)} data={integrations.slack} />
+        <IntegrationMiniCard type="reddit" icon={renderRedditIcon(integrations.reddit.connected)} data={integrations.reddit} />
       </div>
 
       {/* Global Status Messages */}
@@ -305,7 +314,7 @@ export default function IntegrationButtons() {
                 <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0 bg-white/50">
                   <div className="flex items-center gap-2">
                     <div className="p-1.5 bg-brand/10 text-brand rounded-lg">
-                      {showSetup === 'slack' ? renderSlackIcon() : renderRedditIcon()}
+                      {showSetup === 'slack' ? renderSlackIcon(true) : renderRedditIcon(true)}
                     </div>
                     <h4 className="font-semibold text-ink text-sm">Connect {showSetup === 'slack' ? 'Slack' : 'Reddit'}</h4>
                   </div>

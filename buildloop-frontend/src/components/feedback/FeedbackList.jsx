@@ -108,20 +108,20 @@ function FeedbackCard({ fb, index }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ delay: index * 0.03, duration: 0.2 }}
-      className={`${CARD_BASE} rounded-xl p-3 cursor-pointer hover:bg-white/80 transition-colors group`}
+      className={`${CARD_BASE} rounded-xl p-4 cursor-pointer hover:bg-white/80 transition-colors group`}
       onClick={() => setIsExpanded(!isExpanded)}
     >
       {/* Header */}
-      <div className="flex items-start gap-2 mb-2">
+      <div className="flex items-start gap-2 mb-2.5">
         <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${sourceColor}`}>
           <SourceIcon className="w-3 h-3" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-ink-3">
+            <span className="text-[11px] uppercase font-bold tracking-wider text-ink-3">
               {fb.source}
             </span>
-            <span className="text-[10px] text-ink-3 flex items-center gap-0.5">
+            <span className="text-[11px] text-ink-3 flex items-center gap-0.5">
               <Clock className="w-2.5 h-2.5" />
               {new Date(fb.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
             </span>
@@ -139,19 +139,19 @@ function FeedbackCard({ fb, index }) {
       </div>
 
       {/* Content */}
-      <p className={`text-xs text-ink-2 leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
+      <p className={`text-sm text-ink leading-relaxed ${isExpanded ? '' : 'line-clamp-3'}`}>
         {isExpanded ? fb.rawText : previewText}
         {!isExpanded && hasMore && '...'}
       </p>
 
       {/* Footer */}
-      <div className="mt-2 flex items-center justify-between">
+      <div className="mt-3 flex items-center justify-between">
         {hasMore && (
-          <span className="text-[10px] text-brand font-medium">
+          <span className="text-[11px] text-brand font-medium">
             {isExpanded ? 'Show less' : 'Read more'}
           </span>
         )}
-        <span className="text-[10px] text-ink-3 font-mono ml-auto">
+        <span className="text-[11px] text-ink-3 font-mono ml-auto">
           {fb.chunks?.length || fb.chunkCount || 0} chunks
         </span>
       </div>

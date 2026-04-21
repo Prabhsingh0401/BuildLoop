@@ -83,6 +83,13 @@ export default function LandingPage() {
   const [error, setError] = useState('');
   const [videoPlaying, setVideoPlaying] = useState(false);
 
+  // Sign up state
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [code, setCode] = useState('');
+
+  const { isLoaded: signUpLoaded, signUp, setActive } = useSignUp();
+
   // Redirect if already signed in
   useEffect(() => {
     if (isLoaded && isSignedIn) {
@@ -108,6 +115,50 @@ export default function LandingPage() {
       }
     } catch (err) {
       const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Sign in failed. Please try again.';
+      setError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    if (!signUpLoaded) return;
+    setError('');
+    setIsSubmitting(true);
+    try {
+      await signUp.create({
+        emailAddress: email,
+        password,
+      });
+      // Send the email code
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      setPendingVerification(true);
+    } catch (err) {
+      const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Sign up failed. Please try again.';
+      setError(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    if (!signUpLoaded) return;
+    setError('');
+    setIsSubmitting(true);
+    try {
+      const completeSignUp = await signUp.attemptEmailAddressVerification({
+        code,
+      });
+      if (completeSignUp.status === 'complete') {
+        await setActive({ session: completeSignUp.createdSessionId });
+        navigate('/dashboard', { replace: true });
+      } else {
+        console.log(completeSignUp);
+      }
+    } catch (err) {
+      const msg = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || 'Verification failed. Please try again.';
       setError(msg);
     } finally {
       setIsSubmitting(false);
@@ -196,105 +247,199 @@ export default function LandingPage() {
           <img src={LOGO_URL} alt="BuildLoop" className="h-5 w-auto" />
         </div>
 
-        <div className="w-full max-w-[400px]">
-          {/* Heading */}
-          <div className="mb-8">
-            <h1 className="text-[28px] font-semibold text-[#2d3435] leading-tight mb-1.5">
-              Welcome back
-            </h1>
-            <p className="text-sm text-[#5a6061]">Sign in to your BuildLoop account</p>
-          </div>
+          {pendingVerification ? (
+            <div className="w-full max-w-[400px]">
+              {/* Heading */}
+              <div className="mb-8">
+                <h1 className="text-[28px] font-semibold text-[#2d3435] leading-tight mb-1.5">
+                  Verify your email
+                </h1>
+                <p className="text-sm text-[#5a6061]">We sent a code to {email}</p>
+              </div>
 
-          {/* Error */}
-          {error && (
-            <div className="mb-5 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">
-              {error}
-            </div>
-          )}
+              {/* Error */}
+              {error && (
+                <div className="mb-5 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
 
-          {/* Form */}
-          <form onSubmit={handleSignIn} className="space-y-4">
-            {/* Email */}
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="block text-xs font-medium text-[#2d3435] uppercase tracking-[0.05em]">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-                className="w-full px-4 py-3 rounded-xl border border-[#adb3b4]/40 bg-[#f2f4f4] text-sm text-[#2d3435] placeholder:text-[#adb3b4] focus:outline-none focus:border-[#1a1d23]/40 focus:bg-[#dde4e5]/40 transition-colors"
-              />
-            </div>
-
-            {/* Password */}
-            <div className="space-y-1.5">
-              <label htmlFor="password" className="block text-xs font-medium text-[#2d3435] uppercase tracking-[0.05em]">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 pr-11 rounded-xl border border-[#adb3b4]/40 bg-[#f2f4f4] text-sm text-[#2d3435] placeholder:text-[#adb3b4] focus:outline-none focus:border-[#1a1d23]/40 focus:bg-[#dde4e5]/40 transition-colors"
-                />
+              <form onSubmit={handleVerify} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label htmlFor="code" className="block text-xs font-medium text-[#2d3435] uppercase tracking-[0.05em]">
+                    Verification Code
+                  </label>
+                  <input
+                    id="code"
+                    type="text"
+                    required
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="Enter 6-digit code"
+                    className="w-full px-4 py-3 rounded-xl border border-[#adb3b4]/40 bg-[#f2f4f4] text-sm text-[#2d3435] placeholder:text-[#adb3b4] focus:outline-none focus:border-[#1a1d23]/40 focus:bg-[#dde4e5]/40 transition-colors"
+                    autoFocus
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3 rounded-full bg-[#1a1d23] hover:bg-[#2d3435] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors duration-200 flex items-center justify-center gap-2 mt-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Verifying…
+                    </>
+                  ) : (
+                    'Verify Email'
+                  )}
+                </button>
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#adb3b4] hover:text-[#5a6061] transition-colors"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  disabled={isSubmitting}
+                  onClick={() => setPendingVerification(false)}
+                  className="w-full py-3 rounded-full bg-white border border-[#adb3b4]/40 hover:border-[#757c7d]/40 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-[#2d3435] text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2.5 mt-3"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  Back to Sign Up
                 </button>
+              </form>
+            </div>
+          ) : (
+            <div className="w-full max-w-[400px]">
+              {/* Heading */}
+              <div className="mb-8">
+                <h1 className="text-[28px] font-semibold text-[#2d3435] leading-tight mb-1.5">
+                  {isSignUp ? 'Create an account' : 'Welcome back'}
+                </h1>
+                <p className="text-sm text-[#5a6061]">
+                  {isSignUp ? 'Sign up to get started with BuildLoop' : 'Sign in to your BuildLoop account'}
+                </p>
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div className="mb-5 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+
+              {/* Form */}
+              <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-4">
+                {/* Email */}
+                <div className="space-y-1.5">
+                  <label htmlFor="email" className="block text-xs font-medium text-[#2d3435] uppercase tracking-[0.05em]">
+                    Email
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    className="w-full px-4 py-3 rounded-xl border border-[#adb3b4]/40 bg-[#f2f4f4] text-sm text-[#2d3435] placeholder:text-[#adb3b4] focus:outline-none focus:border-[#1a1d23]/40 focus:bg-[#dde4e5]/40 transition-colors"
+                  />
+                </div>
+
+                {/* Password */}
+                <div className="space-y-1.5">
+                  <label htmlFor="password" className="block text-xs font-medium text-[#2d3435] uppercase tracking-[0.05em]">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 pr-11 rounded-xl border border-[#adb3b4]/40 bg-[#f2f4f4] text-sm text-[#2d3435] placeholder:text-[#adb3b4] focus:outline-none focus:border-[#1a1d23]/40 focus:bg-[#dde4e5]/40 transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#adb3b4] hover:text-[#5a6061] transition-colors"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sign In/Up button */}
+                <button
+                  id="sign-in-submit"
+                  type="submit"
+                  disabled={isSubmitting || (isSignUp ? !signUpLoaded : !signInLoaded)}
+                  className="w-full py-3 rounded-full bg-[#1a1d23] hover:bg-[#2d3435] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors duration-200 flex items-center justify-center gap-2 mt-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {isSignUp ? 'Signing up…' : 'Signing in…'}
+                    </>
+                  ) : (
+                    isSignUp ? 'Sign Up' : 'Sign In'
+                  )}
+                </button>
+              </form>
+
+              {/* Divider */}
+              <div className="flex items-center gap-3 my-5">
+                <div className="flex-1 h-px bg-[#adb3b4]/30" />
+                <span className="text-xs text-[#adb3b4] font-medium">or</span>
+                <div className="flex-1 h-px bg-[#adb3b4]/30" />
+              </div>
+
+              {/* Google */}
+              <button
+                id="sign-in-google"
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={!signInLoaded}
+                className="w-full py-3 rounded-full bg-white border border-[#adb3b4]/40 hover:border-[#757c7d]/40 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-[#2d3435] text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2.5"
+              >
+                <GoogleIcon />
+                Continue with Google
+              </button>
+
+              {/* Toggle Account Mode */}
+              <div className="mt-6 text-center text-sm text-[#5a6061]">
+                {isSignUp ? (
+                  <>
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSignUp(false);
+                        setError('');
+                      }}
+                      className="text-[#1a1d23] font-semibold hover:underline focus:outline-none"
+                    >
+                      Sign in
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Don't have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSignUp(true);
+                        setError('');
+                      }}
+                      className="text-[#1a1d23] font-semibold hover:underline focus:outline-none"
+                    >
+                      Sign up
+                    </button>
+                  </>
+                )}
               </div>
             </div>
-
-            {/* Sign In button */}
-            <button
-              id="sign-in-submit"
-              type="submit"
-              disabled={isSubmitting || !signInLoaded}
-              className="w-full py-3 rounded-full bg-[#1a1d23] hover:bg-[#2d3435] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors duration-200 flex items-center justify-center gap-2 mt-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Signing in…
-                </>
-              ) : (
-                'Sign In'
-              )}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-[#adb3b4]/30" />
-            <span className="text-xs text-[#adb3b4] font-medium">or</span>
-            <div className="flex-1 h-px bg-[#adb3b4]/30" />
-          </div>
-
-          {/* Google */}
-          <button
-            id="sign-in-google"
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={!signInLoaded}
-            className="w-full py-3 rounded-full bg-white border border-[#adb3b4]/40 hover:border-[#757c7d]/40 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-[#2d3435] text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2.5"
-          >
-            <GoogleIcon />
-            Continue with Google
-          </button>
-        </div>
+          )}
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ export default function Feedback() {
       {/* Grid background */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#E2E8F0_1px,transparent_1px),linear-gradient(to_bottom,#E2E8F0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_10%,transparent_100%)] opacity-40 pointer-events-none" />
 
-      <div className="z-10 w-full max-w-7xl mx-auto flex flex-col h-full px-2">
+      <div className="z-10 w-full max-w-7xl mx-auto flex flex-col h-full px-4 pt-16 md:pt-0">
         {/* Page header */}
         <motion.div
           variants={fadeUp}
@@ -24,9 +24,6 @@ export default function Feedback() {
           className="mb-4"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/60 backdrop-blur-xl border border-white/40 flex items-center justify-center shadow-sm">
-              <MessageSquare className="w-5 h-5 text-brand" />
-            </div>
             <div>
               <h1 className="text-xl font-semibold text-ink">Feedback Ingestion</h1>
               <p className="text-xs text-ink-3">
