@@ -1,11 +1,7 @@
-import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { X, Info, Check, Loader2, Calendar, Layers } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Info, Check, Loader2, Calendar, ListTodo, Circle, CheckCircle2 } from 'lucide-react';
+import { Plus, X, Info, Check, Loader2, Calendar, ListTodo, Circle, Layers } from 'lucide-react';
 import {
   Dialog,
   DialogContent,

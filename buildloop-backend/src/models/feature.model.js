@@ -55,6 +55,10 @@ const FeatureSchema = new mongoose.Schema({
     type: String,
     enum: ['backlog', 'todo', 'in_progress', 'done'],
     default: 'todo'
+  },
+  isPromoted: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 

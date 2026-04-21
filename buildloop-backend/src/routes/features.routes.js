@@ -136,6 +136,10 @@ router.post('/:id/task', requireAuth, async (req, res) => {
       projectId: feature.projectId,
     });
 
+    // Mark feature as promoted
+    feature.isPromoted = true;
+    await feature.save();
+
     return res.status(201).json({ task });
   } catch (err) {
     console.error('[POST /api/features/:id/task]', err);

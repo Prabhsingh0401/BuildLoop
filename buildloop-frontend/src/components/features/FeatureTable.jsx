@@ -24,7 +24,6 @@ const statusLabels = {
 
 export default function FeatureTable({ features, onRowClick, onPromote }) {
   const [promotingId, setPromotingId] = useState(null);
-  const [promotedIds, setPromotedIds] = useState(new Set());
 
   if (!features || features.length === 0) {
     return (
@@ -36,12 +35,11 @@ export default function FeatureTable({ features, onRowClick, onPromote }) {
 
   const handlePromote = async (e, feature) => {
     e.stopPropagation();
-    if (promotingId || promotedIds.has(feature._id)) return;
+    if (promotingId || feature.isPromoted) return;
 
     setPromotingId(feature._id);
     try {
       await onPromote(feature);
-      setPromotedIds((prev) => new Set([...prev, feature._id]));
     } finally {
       setPromotingId(null);
     }
@@ -75,28 +73,30 @@ export default function FeatureTable({ features, onRowClick, onPromote }) {
         <tbody>
           {features.map((feature, index) => {
             const isPromoting = promotingId === feature._id;
-            const isPromoted  = promotedIds.has(feature._id);
+            const isPromoted  = feature.isPromoted;
 
             return (
               <tr
                 key={feature._id}
-                onClick={() => onRowClick(feature)}
+                onClick={() => !isPromoted && onRowClick(feature)}
                 className={[
-                  'cursor-pointer transition-colors',
-                  'hover:bg-brand-light/30',
+                  'transition-all duration-300',
+                  isPromoted ? 'grayscale opacity-70 cursor-default bg-bg/50' : 'cursor-pointer hover:bg-brand-light/30',
                   index !== features.length - 1 ? 'border-b border-border' : '',
                 ].join(' ')}
               >
                 {/* Title */}
                 <td className="px-4 py-3">
-                  <span className="font-semibold text-ink truncate block max-w-[260px]">
-                    {feature.title}
-                  </span>
-                  {feature.priorityRationale && (
-                    <span className="text-[12px] text-ink-3 truncate block max-w-[260px] mt-0.5">
-                      {feature.priorityRationale}
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-ink truncate block max-w-[260px]">
+                      {feature.title}
                     </span>
-                  )}
+                    {feature.priorityRationale && (
+                      <span className="text-[12px] text-ink-3 truncate block max-w-[260px] mt-0.5">
+                        {feature.priorityRationale}
+                      </span>
+                    )}
+                  </div>
                 </td>
 
                 {/* Priority */}
@@ -146,7 +146,7 @@ export default function FeatureTable({ features, onRowClick, onPromote }) {
                     className={[
                       'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-[11px] font-semibold transition-all',
                       isPromoted
-                        ? 'bg-success-light text-success cursor-default'
+                        ? 'bg-success-light text-success cursor-default shadow-sm'
                         : isPromoting
                         ? 'bg-bg text-ink-3 cursor-not-allowed'
                         : 'bg-brand-light text-brand hover:bg-brand hover:text-white active:scale-95',
