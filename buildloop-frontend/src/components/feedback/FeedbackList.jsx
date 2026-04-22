@@ -8,11 +8,19 @@ import { toast } from 'sonner';
 
 const CARD_BASE = 'bg-white/60 backdrop-blur-xl border border-white/40';
 
+const SlackIconImg = ({ className }) => (
+  <img 
+    src="/1280px-Slack_icon_2019.svg.png" 
+    alt="Slack" 
+    className={`${className} object-contain`} 
+  />
+);
+
 const SOURCE_ICONS = {
   paste: MessageSquare,
   file: FileText,
   url: Link2,
-  slack: Hash,
+  slack: SlackIconImg,
   reddit: Hash,
 };
 
@@ -60,7 +68,7 @@ export default function FeedbackList() {
   }
 
   return (
-    <div className={`${CARD_BASE} rounded-2xl h-full flex flex-col overflow-hidden`}>
+    <div className={`${CARD_BASE} rounded-2xl flex flex-col overflow-hidden`} style={{ height: '420px' }}>
       {/* Scrollable List */}
       <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] p-3 space-y-2">
         <AnimatePresence mode="popLayout">

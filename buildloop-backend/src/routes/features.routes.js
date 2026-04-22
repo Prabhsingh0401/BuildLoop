@@ -129,11 +129,14 @@ router.post('/:id/task', requireAuth, async (req, res) => {
       });
     }
 
+    const { assignee } = req.body || {};
+
     const task = await Task.create({
       title:     feature.title,
       status:    'todo',
       featureId: feature._id,
       projectId: feature.projectId,
+      assignee:  assignee || null,
     });
 
     // Mark feature as promoted

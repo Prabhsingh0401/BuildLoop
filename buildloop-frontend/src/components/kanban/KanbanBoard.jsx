@@ -71,11 +71,12 @@ function buildSubtaskStatsFromCache(queryClient, taskIds) {
   return map;
 }
 
-export default function KanbanBoard({ searchQuery = '' }) {
+export default function KanbanBoard({ searchQuery = '', filters = { assignee: 'all', date: 'all' } }) {
   const { activeProjectId } = useProjectStore();
   const queryClient = useQueryClient();
   const [selectedTask, setSelectedTask] = useState(null);
   const [activeId, setActiveId] = useState(null);
+  const [activeTab, setActiveTab] = useState(COLUMNS[0].key);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -149,12 +150,38 @@ export default function KanbanBoard({ searchQuery = '' }) {
   const activeTask = activeId ? tasks.find((t) => t._id === activeId) : null;
 
   const filteredTasks = tasks.filter((t) => {
+    // Search match
     const query = searchQuery.toLowerCase();
-    return (
+    const matchesSearch =
       t.title.toLowerCase().includes(query) ||
       (t.description || '').toLowerCase().includes(query) ||
-      (t.tags || []).some((tag) => tag.toLowerCase().includes(query))
-    );
+      (t.tags || []).some((tag) => tag.toLowerCase().includes(query));
+
+    // Assignee match
+    const taskAssignee = t.assignee || null;
+    let matchesAssignee = true;
+    if (filters.assignee === 'unassigned') {
+      matchesAssignee = !taskAssignee;
+    } else if (filters.assignee !== 'all') {
+      matchesAssignee = taskAssignee === filters.assignee;
+    }
+
+    // Date match
+    let matchesDate = true;
+    if (filters.date !== 'all' && t.createdAt) {
+      const taskDate = new Date(t.createdAt);
+      const now = new Date();
+      if (filters.date === 'today') {
+        matchesDate = taskDate.toDateString() === now.toDateString();
+      } else if (filters.date === 'this-week') {
+        const diff = now - taskDate;
+        matchesDate = diff <= 7 * 24 * 60 * 60 * 1000;
+      } else if (filters.date === 'this-month') {
+        matchesDate = taskDate.getMonth() === now.getMonth() && taskDate.getFullYear() === now.getFullYear();
+      }
+    }
+
+    return matchesSearch && matchesAssignee && matchesDate;
   });
 
   return (
@@ -166,18 +193,40 @@ export default function KanbanBoard({ searchQuery = '' }) {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
+        {/* Mobile Tabs */}
+        <div className="md:hidden flex gap-2 mb-4 px-4 overflow-x-auto no-scrollbar">
+          {COLUMNS.map((col) => {
+            const isActive = activeTab === col.key;
+            return (
+              <button
+                key={col.key}
+                onClick={() => setActiveTab(col.key)}
+                className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
+                  isActive ? 'bg-ink text-white shadow-md' : 'bg-white/40 text-ink-3 hover:bg-white/60 border border-white/20'
+                }`}
+              >
+                {col.label}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="flex gap-5 h-full pb-6 w-full px-4">
           {COLUMNS.map((col) => (
-            <Column
-              key={col.key}
-              id={col.key}
-              title={col.label}
-              dotClass={col.dotClass}
-              tasks={filteredTasks.filter((t) => t.status === col.key)}
-              featureMap={featureMap}
-              subtaskStatsMap={subtaskStatsMap}
-              onCardClick={handleSelectTask}
-            />
+            <div 
+              key={col.key} 
+              className={`w-full flex-col h-full flex-shrink-0 md:flex-shrink md:w-auto md:flex-1 ${activeTab === col.key ? 'flex' : 'hidden md:flex'}`}
+            >
+              <Column
+                id={col.key}
+                title={col.label}
+                dotClass={col.dotClass}
+                tasks={filteredTasks.filter((t) => t.status === col.key)}
+                featureMap={featureMap}
+                subtaskStatsMap={subtaskStatsMap}
+                onCardClick={handleSelectTask}
+              />
+            </div>
           ))}
         </div>
 

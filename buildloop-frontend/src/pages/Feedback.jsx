@@ -25,7 +25,7 @@ export default function Feedback() {
         >
           <div>
             <h1 className="text-[22px] font-semibold text-ink leading-tight">Feedback Ingestion</h1>
-            <p className="text-sm text-ink-3 mt-0.5">
+            <p className="text-sm text-gray-500 mt-0.5">
               Submit, sync, and manage user feedback from multiple sources
             </p>
           </div>
@@ -56,7 +56,7 @@ export default function Feedback() {
             initial="initial"
             animate="animate"
             transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full lg:w-1/2 flex flex-col"
+            className="w-full lg:w-1/2 flex flex-col mt-9"
           >
             <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-6">
               <FeedbackForm />

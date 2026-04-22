@@ -3,6 +3,9 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { motion } from 'framer-motion';
 import { Clock, ListTodo } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import apiClient from '@/api/client.js';
+import useProjectStore from '@/store/projectStore.js';
 
 /** Returns a human-readable relative time string from a date */
 function timeAgo(dateStr) {
@@ -26,6 +29,21 @@ export default function TaskCard({ task, feature, subtaskStats, onClick }) {
     transition,
     isDragging,
   } = useSortable({ id: task._id });
+
+  const queryClient = useQueryClient();
+  const { activeProjectId } = useProjectStore();
+
+  const { mutate: updateStatus } = useMutation({
+    mutationFn: async (status) => {
+      const { data } = await apiClient.patch(`/api/tasks/${task._id}`, { status });
+      return data.task;
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['tasks', activeProjectId], (old) =>
+        old ? old.map((t) => (t._id === updated._id ? updated : t)) : old
+      );
+    },
+  });
 
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -93,9 +111,30 @@ export default function TaskCard({ task, feature, subtaskStats, onClick }) {
 
           {/* Footer */}
           <div className="flex items-center justify-between pt-2 mt-1 border-t border-gray-50">
-            <div className="flex items-center gap-1 text-gray-400">
-              <Clock size={12} strokeWidth={2} />
-              <span className="text-[11px] font-medium">{timeAgo(task.createdAt)}</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1 text-gray-400">
+                <Clock size={12} strokeWidth={2} />
+                <span className="text-[11px] font-medium">{timeAgo(task.createdAt)}</span>
+              </div>
+              
+              {/* Mobile Status Dropdown */}
+              <div className="md:hidden">
+                <select
+                  value={task.status}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    updateStatus(e.target.value);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="h-5 bg-gray-100 border border-gray-200 text-gray-600 text-[9px] font-bold uppercase tracking-wider rounded px-1.5 py-0 outline-none cursor-pointer focus:ring-1 focus:ring-gray-900/10 appearance-none"
+                >
+                  <option value="todo">TODO</option>
+                  <option value="in-progress">IN PROG</option>
+                  <option value="review">REVIEW</option>
+                  <option value="done">DONE</option>
+                </select>
+              </div>
             </div>
 
             {task.assignee ? (

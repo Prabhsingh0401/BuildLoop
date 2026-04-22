@@ -249,8 +249,7 @@ export default function FeedbackForm() {
       </AnimatePresence>
 
       {/* Submit Button */}
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[10px] text-ink-3">Feedback is chunked, embedded, and stored for AI synthesis.</p>
+      <div className="flex items-center justify-end gap-3">
         <button
           type="submit"
           disabled={isDisabled}

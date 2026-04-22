@@ -81,7 +81,7 @@ function SynthesizeButton({ onClick, isLoading }) {
         }`}
     >
       {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-      {isLoading ? 'Analysing feedback…' : 'Synthesize Insights'}
+      {isLoading ? 'Analysing feedback…' : 'Update Insights'}
     </button>
   );
 }
@@ -149,7 +149,7 @@ function InsightsContent() {
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-[22px] font-semibold text-ink leading-tight">Insights</h1>
-            <p className="text-sm text-ink-3 mt-0.5">
+            <p className="text-sm text-gray-500 mt-0.5">
               AI-clustered themes distilled from your feedback.
             </p>
           </div>

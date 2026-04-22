@@ -117,7 +117,6 @@ export default function CreateTaskModal() {
         status,
         assignee: form.assignee || null,
         featureId: form.featureId || null,
-        assignee:    form.assignee || null,
       });
 
       const newTaskId = taskData.task._id;
@@ -158,19 +157,24 @@ export default function CreateTaskModal() {
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
         showCloseButton={false}
-        className="p-0 !bg-transparent border-none shadow-none focus:outline-none max-w-none sm:max-w-none w-full h-full flex items-center justify-center m-0 md:p-6 !translate-x-0 !translate-y-0 !top-0 !left-0"
+        className="p-0 md:p-6 !bg-transparent border-none shadow-none focus:outline-none max-w-none sm:max-w-none w-full h-full flex items-end md:items-center justify-center m-0 !translate-x-0 !translate-y-0 !top-0 !left-0"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogTitle className="sr-only">Create New Task</DialogTitle>
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="w-full max-w-[900px] h-auto max-h-[90vh] bg-white shadow-[0_30px_100px_-20px_rgba(0,0,0,0.2)] flex flex-col relative z-[110] border border-gray-100 rounded-xl overflow-hidden m-auto"
+          initial={{ y: '100%', opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: '100%', opacity: 0 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          className="w-full max-w-[900px] h-auto max-h-[90vh] md:max-h-[85vh] bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.1)] md:shadow-[0_30px_100px_-20px_rgba(0,0,0,0.2)] flex flex-col relative z-[110] border border-gray-100 rounded-t-3xl md:rounded-3xl overflow-hidden mt-auto md:m-auto"
         >
+          {/* Handle for mobile pull-down (visual only) */}
+          <div className="w-full flex justify-center pt-3 pb-1 md:hidden bg-gray-50/20">
+            <div className="w-12 h-1.5 bg-black/10 rounded-full" />
+          </div>
+
           {/* Header */}
-          <div className="px-8 py-6 flex items-start justify-between border-b border-gray-50 bg-gray-50/20">
+          <div className="px-5 md:px-8 py-5 md:py-6 flex items-start justify-between border-b border-gray-50 bg-gray-50/20">
             <div>
               <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">Create New Task</h2>
               <p className="text-[13px] text-gray-400 font-medium">Add a new task to your project board</p>
@@ -184,8 +188,8 @@ export default function CreateTaskModal() {
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
-            <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="flex-1 overflow-y-auto px-5 md:px-8 py-5 md:py-6 custom-scrollbar">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
 
                 {/* ── Left Column ── */}
                 <div className="space-y-6">
@@ -406,7 +410,7 @@ export default function CreateTaskModal() {
             </div>
 
             {/* Footer Actions */}
-            <div className="px-8 py-6 border-t border-gray-50 bg-gray-50/20 flex items-center justify-between gap-4">
+            <div className="px-5 md:px-8 py-5 md:py-6 border-t border-gray-50 bg-gray-50/20 flex items-center justify-between gap-4">
               <span className="text-xs text-gray-400">
                 {subtaskList.length > 0
                   ? `${subtaskList.length} subtask${subtaskList.length !== 1 ? 's' : ''} will be created`

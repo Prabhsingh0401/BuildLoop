@@ -76,6 +76,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task?.title || '');
   const [editedDescription, setEditedDescription] = useState(task?.description || '');
+  const [editedAssignee, setEditedAssignee] = useState(task?.assignee || '');
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Subtask state
@@ -87,6 +88,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
     if (task) {
       setEditedTitle(task.title);
       setEditedDescription(task.description || '');
+      setEditedAssignee(task.assignee || '');
       setIsEditing(false);
       setNewSubtaskTitle('');
       setAddingSubtask(false);
@@ -108,6 +110,15 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
 
   const doneCount = subtasks.filter((s) => s.status === 'done').length;
   const progress  = subtasks.length > 0 ? Math.round((doneCount / subtasks.length) * 100) : 0;
+
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ['teamMembers', activeProjectId],
+    queryFn: async () => {
+      const { data } = await apiClient.get(`/api/team-members?projectId=${activeProjectId}`);
+      return data.data ?? [];
+    },
+    enabled: !!task && !!activeProjectId,
+  });
 
   const SUBTASK_KEY = ['subtasks', task?._id];
 
@@ -183,7 +194,11 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
   if (!task) return null;
 
   const handleSave = () => {
-    updateMutation.mutate({ title: editedTitle, description: editedDescription });
+    updateMutation.mutate({ 
+      title: editedTitle, 
+      description: editedDescription, 
+      assignee: editedAssignee || null
+    });
   };
 
   const handleDelete = () => {
@@ -208,20 +223,25 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
     <Dialog open={!!task} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
         showCloseButton={false}
-        className="p-0 !bg-transparent border-none shadow-none focus:outline-none max-w-none sm:max-w-none w-full h-full flex items-center justify-center m-0 md:p-6 !translate-x-0 !translate-y-0 !top-0 !left-0"
+        className="p-0 md:p-6 !bg-transparent border-none shadow-none focus:outline-none max-w-none sm:max-w-none w-full h-full flex items-end md:items-center justify-center m-0 !translate-x-0 !translate-y-0 !top-0 !left-0"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogTitle className="sr-only">Task Details</DialogTitle>
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="w-full max-w-[900px] h-auto max-h-[90vh] bg-white shadow-[0_30px_100px_-20px_rgba(0,0,0,0.2)] flex flex-col relative z-[110] border border-gray-100 rounded-xl overflow-hidden m-auto"
+          initial={{ y: '100%', opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: '100%', opacity: 0 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          className="w-full max-w-[900px] h-auto max-h-[90vh] md:max-h-[85vh] bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.1)] md:shadow-[0_30px_100px_-20px_rgba(0,0,0,0.2)] flex flex-col relative z-[110] border border-gray-100 rounded-t-3xl md:rounded-3xl overflow-hidden mt-auto md:m-auto"
         >
+          {/* Handle for mobile pull-down (visual only) */}
+          <div className="w-full flex justify-center pt-3 pb-1 md:hidden bg-gray-50/30">
+            <div className="w-12 h-1.5 bg-black/10 rounded-full" />
+          </div>
+
           {/* Header */}
-          <div className="flex items-center justify-between px-8 py-6 border-b border-gray-50 flex-shrink-0 bg-gray-50/30">
-            <div className="flex flex-wrap gap-3">
+          <div className="flex items-center justify-between px-5 md:px-8 py-5 md:py-6 border-b border-gray-50 flex-shrink-0 bg-gray-50/30">
+            <div className="flex flex-wrap gap-3 items-center">
               <span className="px-3 py-1.5 rounded-full bg-gray-900 text-white text-[11px] font-semibold uppercase tracking-wider">
                 {task.status.replace('-', ' ')}
               </span>
@@ -235,14 +255,14 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
               {/* Edit toggle button */}
               <button
                 onClick={() => setIsEditing((v) => !v)}
-                className={`flex items-center gap-1.5 px-3 h-9 rounded-lg text-sm font-medium transition-all ${
+                className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all ${
                   isEditing
                     ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     : 'bg-white border border-gray-100 text-gray-500 hover:text-gray-900 hover:border-gray-300'
                 }`}
+                title={isEditing ? "Cancel Edit" : "Edit Task"}
               >
-                <Pencil size={14} />
-                {isEditing ? 'Cancel Edit' : 'Edit'}
+                <Pencil size={18} />
               </button>
               <button
                 onClick={handleClose}
@@ -258,7 +278,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
 
               {/* ── Left Column (Main) ── */}
-              <div className="lg:col-span-7 p-8 space-y-8 border-r border-gray-50">
+              <div className="lg:col-span-7 p-5 md:p-8 space-y-8 border-r border-gray-50">
 
                 {/* Title */}
                 <div className="space-y-3">
@@ -442,7 +462,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
               </div>
 
               {/* ── Right Column (Sidebar) ── */}
-              <div className="lg:col-span-5 p-8 bg-gray-50/20 space-y-6">
+              <div className="lg:col-span-5 p-5 md:p-8 bg-gray-50/20 space-y-6">
                 {/* Metadata Cards */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-4 rounded-lg bg-white border border-gray-100">
@@ -469,12 +489,31 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
                     <User size={16} />
                     Assigned To
                   </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white border border-gray-100">
-                    <div className="w-9 h-9 rounded-full bg-gray-900 flex items-center justify-center text-white font-semibold text-xs">
-                      {(task.assignee || 'U')[0]}
+                  {isEditing ? (
+                    <select
+                      value={editedAssignee}
+                      onChange={(e) => setEditedAssignee(e.target.value)}
+                      className="w-full h-11 bg-white border border-gray-100 rounded-lg px-4 text-sm text-gray-900 focus:ring-2 focus:ring-gray-900/5 focus:border-gray-900 transition-all outline-none cursor-pointer appearance-none"
+                    >
+                      <option value="">Unassigned</option>
+                      {teamMembers.map((member) => (
+                        <option key={member._id} value={member.name || member.email}>
+                          {member.name || member.email}
+                          {member.role ? ` (${member.role})` : ''}
+                        </option>
+                      ))}
+                      {teamMembers.length === 0 && (
+                        <option disabled value="">No members assigned</option>
+                      )}
+                    </select>
+                  ) : (
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-white border border-gray-100">
+                      <div className="w-9 h-9 rounded-full bg-gray-900 flex items-center justify-center text-white font-semibold text-xs shrink-0 uppercase">
+                        {(task.assignee || 'U')[0]}
+                      </div>
+                      <span className="font-medium text-gray-900 text-sm truncate">{task.assignee || 'Unassigned'}</span>
                     </div>
-                    <span className="font-medium text-gray-900 text-sm">{task.assignee || 'Unassigned'}</span>
-                  </div>
+                  )}
                 </div>
 
                 {/* Tags */}
@@ -503,7 +542,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
           </div>
 
           {/* Footer */}
-          <div className="px-8 py-5 border-t border-gray-50 flex items-center justify-end gap-4 bg-white shrink-0">
+          <div className="px-5 md:px-8 py-4 md:py-5 border-t border-gray-50 flex items-center justify-end gap-4 bg-white shrink-0">
             <button
               onClick={handleDelete}
               disabled={isDeleting}
