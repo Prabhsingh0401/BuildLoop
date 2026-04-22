@@ -11,12 +11,13 @@ export async function getGithubStatus(projectId) {
   return {
     connected: true,
     username: integration.username,
-    lastSync: integration.lastSyncTimestamp
+    lastSync: integration.lastSyncTimestamp,
+    lastSyncedRepo: integration.lastSyncedRepo
   };
 }
 
 export async function connectGithub({ projectId, userId, code }) {
-  const clientId = process.env.ClLIENT_ID || process.env.CLIENT_ID;
+  const clientId = process.env.CLIENT_ID;
   const clientSecret = process.env.CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
@@ -213,6 +214,12 @@ export async function syncGithubRepo(projectId, owner, repo, userId) {
       console.error(`Error syncing file ${file.path}:`, err.message);
     }
   }
+
+  // Persist sync metadata back to the integration record
+  await GithubIntegration.findOneAndUpdate(
+    { projectId },
+    { $set: { lastSyncTimestamp: new Date(), lastSyncedRepo: `${owner}/${repo}` } }
+  );
 
   return { syncedFiles, totalCodeFiles: codeFiles.length };
 }

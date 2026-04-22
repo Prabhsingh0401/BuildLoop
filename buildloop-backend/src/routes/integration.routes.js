@@ -223,9 +223,7 @@ router.post('/reddit/sync', async (req, res, next) => {
 // GitHub Routes
 // ─────────────────────────────────────────────────────────────────────────────
 
-router.get('/github/client-id', (req, res) => {
-  res.json({ success: true, data: { clientId: process.env.ClLIENT_ID || process.env.CLIENT_ID } });
-});
+
 
 router.get('/github/:projectId', async (req, res, next) => {
   try {

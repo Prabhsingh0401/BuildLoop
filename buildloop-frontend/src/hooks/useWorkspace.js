@@ -36,15 +36,15 @@ export function useWorkspace(projectId) {
 
   // Ask mutation 
   const askMutation = useMutation({
-    mutationFn: async ({ question, history }) => {
+    mutationFn: async ({ question, history, activeRepo }) => {
       const token = await getToken();
-      return askWorkspace({ projectId, question, messages: history, token });
+      return askWorkspace({ projectId, question, messages: history, activeRepo, token });
     },
   });
 
-  // ask(question)
+  // ask(question, activeRepo)
   const ask = useCallback(
-    async (question) => {
+    async (question, activeRepo) => {
       // ✅ Prevent spamming while request is in-flight
       if (askMutation.isPending) return;
 
@@ -64,14 +64,15 @@ export function useWorkspace(projectId) {
         const result = await askMutation.mutateAsync({
           question: trimmed,
           history:  historySnapshot,
+          activeRepo,
         });
 
         setMessages((prev) => [
           ...prev,
           {
             role:      "assistant",
-            content:   result.answer,
-            citations: result.citations ?? [],
+            content:   result.data.answer,
+            citations: result.data.citations ?? [],
           },
         ]);
 

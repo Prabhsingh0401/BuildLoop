@@ -43,7 +43,7 @@ export async function uploadWorkspaceFiles(projectId, formData, token) {
 }
 
 // Ask question (RAG + conversation history)
-export async function askWorkspace({ projectId, question, messages, token }) {
+export async function askWorkspace({ projectId, question, messages, activeRepo, token }) {
   if (!projectId) throw new Error("projectId is required");
   if (!question) throw new Error("question is required");
 
@@ -57,6 +57,7 @@ export async function askWorkspace({ projectId, question, messages, token }) {
       projectId,
       question,
       messages, // full conversation history
+      activeRepo,
     }),
   });
 

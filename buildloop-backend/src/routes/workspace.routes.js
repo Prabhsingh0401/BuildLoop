@@ -17,7 +17,7 @@ const upload = multer({ storage: multer.memoryStorage() });
  */
 router.post("/ask", async (req, res, next) => {
   try {
-    const { question, projectId, messages = [] } = req.body;
+    const { question, projectId, messages = [], activeRepo } = req.body;
 
     // ✅ Safe validation
     if (typeof question !== "string" || !question.trim()) {
@@ -47,6 +47,7 @@ router.post("/ask", async (req, res, next) => {
       projectId,
       question: safeQuestion,
       messages,
+      activeRepo,
     });
 
     // ✅ Consistent success response

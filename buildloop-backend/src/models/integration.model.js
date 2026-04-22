@@ -108,6 +108,10 @@ const GithubIntegrationSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  lastSyncedRepo: {
+    type: String,
+    default: null
+  },
   isActive: {
     type: Boolean,
     default: true

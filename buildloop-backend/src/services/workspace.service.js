@@ -3,18 +3,58 @@ import { embedQuery } from "./embedding.service.js";
 import { queryEmbedding } from "../lib/pinecone.js";
 import AppError from "../utils/AppError.js";
 
-// askWorkspace({ projectId, question, messages })
-export async function askWorkspace({ projectId, question, messages = [] }) {
+const ragCache = new Map();
+const CACHE_TTL_MS = 1000 * 60 * 60; // 1 hour
+
+// Simple cleanup function
+function cleanupCache() {
+  const now = Date.now();
+  for (const [key, value] of ragCache.entries()) {
+    if (now - value.timestamp > CACHE_TTL_MS) {
+      ragCache.delete(key);
+    }
+  }
+}
+setInterval(cleanupCache, 1000 * 60 * 10); // Run cleanup every 10 mins
+
+// askWorkspace({ projectId, question, messages, activeRepo })
+export async function askWorkspace({ projectId, question, messages = [], activeRepo }) {
 
   if (!question?.trim()) {
     throw new AppError("Question cannot be empty", 400);
   }
 
+  // --- Check Cache ---
+  // To keep it simple, we cache based on the project, the repo, and the question.
+  // Note: We ignore history here for simplicity, but if exact same question is asked, it hits.
+  const normalizedQuestion = question.trim().toLowerCase();
+  const normalizedRepo = activeRepo || "ALL";
+  const cacheKey = `${projectId}::${normalizedRepo}::${normalizedQuestion}`;
+
+  const cached = ragCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+    console.log(`[INFO][workspace] RAG Cache hit for ${cacheKey}`);
+    return { answer: cached.answer, citations: cached.citations };
+  }
+  // -------------------
+
   // Step 1 — Embed question
   const queryVector = await embedQuery(question);
 
-  // Step 2 — Pinecone search
-  const matches = await queryEmbedding(queryVector, "workspace", 6, projectId);
+  // Step 2 — Pinecone search (fetch more in case we need to filter)
+  const allMatches = await queryEmbedding(queryVector, "workspace", 30, projectId);
+
+  // Filter matches if an active repo is selected
+  let matches = allMatches;
+  if (activeRepo) {
+    const repoNameOnly = activeRepo.split("/").pop(); // e.g., "Buildloop-testing"
+    matches = allMatches.filter((m) =>
+      m.metadata?.fileName?.startsWith(`[${repoNameOnly}] `)
+    );
+  }
+
+  // Take the top 6 matches after filtering
+  matches = matches.slice(0, 6);
 
   // Early return (no hallucination, no cost)
   if (matches.length === 0) {
@@ -95,6 +135,14 @@ Answer clearly using ONLY the provided code context.`,
     excerpt: (match.metadata?.text ?? "").slice(0, 200).trim(),
     score: match.score ?? 0,
   }));
+
+  // --- Save to Cache ---
+  ragCache.set(cacheKey, {
+    answer,
+    citations,
+    timestamp: Date.now(),
+  });
+  // ---------------------
 
   return { answer, citations };
 }

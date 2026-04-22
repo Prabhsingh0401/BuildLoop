@@ -8,6 +8,10 @@ import { verifyClerkAuth, requireAuth } from './middleware/auth.middleware.js';
 
 dotenv.config();
 
+// Public (no-auth) GitHub OAuth helpers – must be registered before the
+// auth middleware so the browser can reach them during the OAuth flow.
+import publicGithubRouter from './routes/github.public.routes.js';
+
 async function startServer() {
   try {
     // Connect to MongoDB first
@@ -20,6 +24,9 @@ async function startServer() {
     app.use(cors());
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
+
+    // Public GitHub OAuth routes (no auth required)
+    app.use('/api/integrations/github', publicGithubRouter);
 
     // Health check - public endpoint
     app.get('/health', (req, res) => {

@@ -1,18 +1,18 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronRight, ChevronDown, Folder, File as FileIcon, FileCode, FileText, Image as ImageIcon } from 'lucide-react';
+import {
+  ChevronRight, ChevronDown,
+  Folder, File as FileIcon, FileCode, FileText, Image as ImageIcon,
+} from 'lucide-react';
 
 const getFileIcon = (filename) => {
   const ext = filename.split('.').pop().toLowerCase();
-  if (['js', 'jsx', 'ts', 'tsx', 'css', 'json', 'html'].includes(ext)) {
-    return <FileCode className="w-4 h-4 text-blue-400" />;
-  }
-  if (['md', 'txt'].includes(ext)) {
-    return <FileText className="w-4 h-4 text-gray-400" />;
-  }
-  if (['png', 'jpg', 'jpeg', 'svg', 'gif'].includes(ext)) {
-    return <ImageIcon className="w-4 h-4 text-purple-400" />;
-  }
-  return <FileIcon className="w-4 h-4 text-gray-400" />;
+  if (['js', 'jsx', 'ts', 'tsx', 'css', 'json', 'html'].includes(ext))
+    return <FileCode className="w-4 h-4 text-ink-3" />;
+  if (['md', 'txt'].includes(ext))
+    return <FileText className="w-4 h-4 text-ink-3" />;
+  if (['png', 'jpg', 'jpeg', 'svg', 'gif'].includes(ext))
+    return <ImageIcon className="w-4 h-4 text-ink-3" />;
+  return <FileIcon className="w-4 h-4 text-ink-3" />;
 };
 
 const TreeNode = ({ node, level = 0, onFileClick, repoUrl }) => {
@@ -34,31 +34,35 @@ const TreeNode = ({ node, level = 0, onFileClick, repoUrl }) => {
 
   return (
     <div className="w-full">
-      <div 
+      <div
         onClick={handleClick}
-        className={`flex items-center gap-1.5 py-1 px-2 hover:bg-gray-50 rounded-md cursor-pointer transition-colors group text-sm ${isDir ? 'text-gray-800 font-medium' : 'text-gray-600 hover:text-gray-900'}`}
+        className={`flex items-center gap-1.5 py-1 px-2 hover:bg-bg rounded-md cursor-pointer transition-colors group text-sm ${
+          isDir ? 'text-ink font-semibold' : 'text-ink-2 hover:text-ink'
+        }`}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
       >
         <div className="w-4 h-4 flex items-center justify-center shrink-0">
           {isDir ? (
-            <div className="text-gray-400 group-hover:text-gray-600 transition-colors">
-              {isOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            </div>
+            <span className="text-ink-3 group-hover:text-ink transition-colors">
+              {isOpen
+                ? <ChevronDown className="w-3.5 h-3.5" />
+                : <ChevronRight className="w-3.5 h-3.5" />}
+            </span>
           ) : (
-            <div className="w-3.5" /> // spacer for files
+            <div className="w-3.5" />
           )}
         </div>
-        
+
         <div className="flex items-center gap-2 flex-1 truncate">
           {isDir ? (
-            <Folder className={`w-4 h-4 ${isOpen ? 'text-blue-500' : 'text-blue-400'}`} />
+            <Folder className="w-4 h-4 text-ink-3" />
           ) : (
             getFileIcon(node.name)
           )}
           <span className="truncate">{node.name}</span>
         </div>
       </div>
-      
+
       {isDir && isOpen && node.children && (
         <div className="flex flex-col w-full">
           {Object.values(node.children)
@@ -67,15 +71,14 @@ const TreeNode = ({ node, level = 0, onFileClick, repoUrl }) => {
               return a.type === 'tree' ? -1 : 1;
             })
             .map((childNode) => (
-              <TreeNode 
-                key={childNode.path} 
-                node={childNode} 
-                level={level + 1} 
+              <TreeNode
+                key={childNode.path}
+                node={childNode}
+                level={level + 1}
                 onFileClick={onFileClick}
                 repoUrl={repoUrl}
               />
-            ))
-          }
+            ))}
         </div>
       )}
     </div>
@@ -85,7 +88,7 @@ const TreeNode = ({ node, level = 0, onFileClick, repoUrl }) => {
 export default function FileTree({ data, repoUrl, onFileClick }) {
   const tree = useMemo(() => {
     if (!data || !Array.isArray(data)) return null;
-    
+
     const root = { children: {} };
     data.forEach(item => {
       const parts = item.path.split('/');
@@ -104,25 +107,25 @@ export default function FileTree({ data, repoUrl, onFileClick }) {
       }
       Object.assign(current, item);
     });
-    
+
     return root.children;
   }, [data]);
 
   if (!tree) return null;
 
   return (
-    <div className="flex flex-col w-full py-2 bg-white overflow-hidden">
+    <div className="flex flex-col w-full py-2 bg-surface overflow-hidden">
       {Object.values(tree)
         .sort((a, b) => {
           if (a.type === b.type) return a.name.localeCompare(b.name);
-          return a.type === 'tree' ? -1 : 1; // folders first
+          return a.type === 'tree' ? -1 : 1;
         })
         .map((node) => (
-          <TreeNode 
-            key={node.path} 
-            node={node} 
-            repoUrl={repoUrl} 
-            onFileClick={onFileClick} 
+          <TreeNode
+            key={node.path}
+            node={node}
+            repoUrl={repoUrl}
+            onFileClick={onFileClick}
           />
         ))}
     </div>
