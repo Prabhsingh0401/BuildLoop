@@ -11,6 +11,17 @@ import {
   getRedditStatus,
   syncRedditPosts
 } from '../services/reddit.service.js';
+import {
+  getGithubStatus,
+  connectGithub,
+  disconnectGithub,
+  getRepos,
+  getRepoContents,
+  getRepoTree,
+  getCommits,
+  getPullRequests,
+  syncGithubRepo
+} from '../services/github.service.js';
 
 const router = Router();
 
@@ -203,6 +214,125 @@ router.post('/reddit/sync', async (req, res, next) => {
       data: result,
       message: `Synced ${result.ingested} posts from Reddit`
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GitHub Routes
+// ─────────────────────────────────────────────────────────────────────────────
+
+router.get('/github/client-id', (req, res) => {
+  res.json({ success: true, data: { clientId: process.env.ClLIENT_ID || process.env.CLIENT_ID } });
+});
+
+router.get('/github/:projectId', async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const status = await getGithubStatus(projectId);
+    res.json({ success: true, data: status });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/github/connect', async (req, res, next) => {
+  try {
+    const { projectId, code } = req.body;
+    const userId = req.auth?.userId;
+
+    if (!projectId || !code) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: projectId, code'
+      });
+    }
+
+    const result = await connectGithub({ projectId, userId, code });
+    res.json({
+      success: true,
+      data: result,
+      message: `Connected to GitHub as ${result.username}`
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/github/disconnect', async (req, res, next) => {
+  try {
+    const { projectId } = req.body;
+    if (!projectId) {
+      return res.status(400).json({
+        success: false,
+        message: 'projectId is required'
+      });
+    }
+    await disconnectGithub(projectId);
+    res.json({ success: true, message: 'GitHub disconnected' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/github/:projectId/repos', async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const repos = await getRepos(projectId);
+    res.json({ success: true, data: repos });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/github/:projectId/repos/:owner/:repo/contents', async (req, res, next) => {
+  try {
+    const { projectId, owner, repo } = req.params;
+    const { path } = req.query; // optional
+    const contents = await getRepoContents(projectId, owner, repo, path);
+    res.json({ success: true, data: contents });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/github/:projectId/repos/:owner/:repo/tree', async (req, res, next) => {
+  try {
+    const { projectId, owner, repo } = req.params;
+    const tree = await getRepoTree(projectId, owner, repo);
+    res.json({ success: true, data: tree });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/github/:projectId/repos/:owner/:repo/commits', async (req, res, next) => {
+  try {
+    const { projectId, owner, repo } = req.params;
+    const commits = await getCommits(projectId, owner, repo);
+    res.json({ success: true, data: commits });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/github/:projectId/repos/:owner/:repo/pulls', async (req, res, next) => {
+  try {
+    const { projectId, owner, repo } = req.params;
+    const pulls = await getPullRequests(projectId, owner, repo);
+    res.json({ success: true, data: pulls });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/github/:projectId/repos/:owner/:repo/sync', async (req, res, next) => {
+  try {
+    const { projectId, owner, repo } = req.params;
+    const userId = req.auth?.userId;
+    const result = await syncGithubRepo(projectId, owner, repo, userId);
+    res.json({ success: true, data: result, message: `Synced ${result.syncedFiles} files from the repository to your workspace.` });
   } catch (error) {
     next(error);
   }

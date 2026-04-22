@@ -86,7 +86,37 @@ const RedditIntegrationSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for lookups (not unique - allows reconnecting with different channels/subreddits)
+const GithubIntegrationSchema = new mongoose.Schema({
+  projectId: {
+    type: String,
+    required: true
+  },
+  createdBy: {
+    type: String,
+    required: true
+  },
+  accessToken: {
+    type: String,
+    required: true,
+    select: false
+  },
+  username: {
+    type: String,
+    required: false
+  },
+  lastSyncTimestamp: {
+    type: Date,
+    default: null
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  }
+}, {
+  timestamps: true
+});
+
+// Index for lookups (not unique - allows reconnecting)
 SlackIntegrationSchema.index({ projectId: 1 });
 RedditIntegrationSchema.index({ projectId: 1 });
 
@@ -100,4 +130,10 @@ export const RedditIntegration = mongoose.model(
   'RedditIntegration',
   RedditIntegrationSchema,
   process.env.COLLECTION_REDDIT_INTEGRATIONS || 'reddit_integrations'
+);
+
+export const GithubIntegration = mongoose.model(
+  'GithubIntegration',
+  GithubIntegrationSchema,
+  'github_integrations'
 );

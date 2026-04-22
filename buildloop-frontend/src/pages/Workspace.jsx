@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import { motion } from 'framer-motion';
 import { ChatInterface } from "../components/workspace/ChatInterface";
-import { CodeUpload } from "../components/workspace/CodeUpload";
+import GithubIntegration from "../components/workspace/GithubIntegration";
 import { useWorkspace } from "../hooks/useWorkspace";
 
 const CARD_BASE =
@@ -31,8 +31,7 @@ export default function WorkspacePage() {
     files = [], // ✅ assume hook gives files (safe default)
   } = useWorkspace(projectId);
 
-  // ✅ REAL logic (no hardcoding)
-  const hasFiles = files.length > 0;
+  const hasFiles = true; // Temporary for chat bypass
 
   return (
     <div className="relative min-h-[calc(100vh-140px)] flex flex-col py-10 px-4">
@@ -58,31 +57,25 @@ export default function WorkspacePage() {
 
         {/* Content Panels */}
         <motion.div 
-          className="flex h-[calc(100vh-280px)] gap-6"
+          className="flex h-[calc(100vh-240px)] min-h-[400px] gap-6"
           variants={{ animate: { transition: { staggerChildren: 0.1 } } }}
           initial="initial"
           animate="animate"
         >
-          {/* LEFT PANEL - Code Upload (50%) */}
+          {/* LEFT PANEL - Code Upload (60%) */}
           <motion.div 
             variants={fadeUp}
             transition={{ duration: 0.4 }}
-            className={`${CARD_BASE} w-1/2 flex-shrink-0 flex flex-col gap-4 overflow-y-auto p-6`}
+            className={`${CARD_BASE} w-3/5 flex-shrink-0 flex flex-col gap-4 overflow-hidden p-6`}
           >
-            <h2 className="text-[15px] font-semibold text-ink">Upload Code</h2>
-            <CodeUpload 
-              onUpload={upload}
-              isUploading={isUploading}
-              uploadError={uploadError}
-              files={files}
-            />
+            <GithubIntegration projectId={projectId} />
           </motion.div>
 
-          {/* RIGHT PANEL - Chat Interface */}
+          {/* RIGHT PANEL - Chat Interface (40%) */}
           <motion.div 
             variants={fadeUp}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="w-1/2 flex-shrink-0 min-h-0"
+            className="w-2/5 flex-shrink-0 min-h-0"
           >
             <ChatInterface
               messages={messages}

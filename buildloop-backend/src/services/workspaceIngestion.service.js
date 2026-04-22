@@ -55,6 +55,7 @@ export async function ingestWorkspaceFile({ fileBuffer, fileName, projectId, use
       language,
       chunkIndex: i,
       uploadedBy: userId,
+      text: chunks[i],
     },
   }));
 
