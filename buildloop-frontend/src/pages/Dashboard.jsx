@@ -9,8 +9,9 @@ import {
   updateTeamMember,
   deleteTeamMember,
 } from '../services/teamService';
-import { fetchInsights } from '../services/insightService';
 import { fetchProjectFeedback } from '../services/feedbackService';
+import { fetchInsights } from '../services/insightService';
+import apiClient from '../api/client.js';
 import { DashboardStats } from '../components/ui/DashboardStats';
 import {
   FolderKanban,
@@ -553,6 +554,15 @@ export default function Dashboard() {
   // Falls back to the first owned project if nothing is selected yet.
   const statsProjectId = activeProjectId || ownedProjects[0]?._id;
 
+  const { data: tasksData, isLoading: tasksLoading } = useQuery({
+    queryKey: ['tasks', statsProjectId],
+    queryFn: async () => {
+      const { data } = await apiClient.get(`/api/tasks/${statsProjectId}`);
+      return data.tasks;
+    },
+    enabled: !!statsProjectId && isLoaded && isSignedIn,
+  });
+
   const { data: insightsData } = useQuery({
     queryKey: ['insights-dash', statsProjectId],
     queryFn: async () => {
@@ -571,15 +581,17 @@ export default function Dashboard() {
     enabled: !!statsProjectId && isLoaded && isSignedIn,
   });
 
+  const tasks = tasksData || [];
   const insights = insightsData?.data || [];
   const feedbackItems = feedbackData?.data || [];
 
-  // Features by status from insights
-  const featuresPending = insights.filter((i) => i.status === 'pending' || !i.status).length;
-  const featuresInProgress = insights.filter((i) => i.status === 'in_progress').length;
-  const featuresDone = insights.filter((i) => i.status === 'done').length;
+  // Kanban column counts
+  const taskTodo       = tasks.filter((t) => t.status === 'todo').length;
+  const taskInProgress = tasks.filter((t) => t.status === 'in-progress').length;
+  const taskReview     = tasks.filter((t) => t.status === 'review').length;
+  const taskDone       = tasks.filter((t) => t.status === 'done').length;
 
-  // Build 7-day activity spark from feedback createdAt
+  // Build 7-day activity spark from task createdAt
   const activityData = (() => {
     const today = new Date();
     const buckets = Array.from({ length: 7 }, (_, i) => {
@@ -588,7 +600,7 @@ export default function Dashboard() {
       return d.toDateString();
     });
     return buckets.map((day) =>
-      feedbackItems.filter((f) => new Date(f.createdAt).toDateString() === day).length
+      tasks.filter((t) => new Date(t.createdAt).toDateString() === day).length
     );
   })();
 
@@ -609,11 +621,11 @@ export default function Dashboard() {
 
         {/* ── Stats + Charts ── */}
         <DashboardStats
-          loading={isLoading}
-          projectCount={projects.length}
-          featuresPending={featuresPending}
-          featuresInProgress={featuresInProgress}
-          featuresDone={featuresDone}
+          loading={isLoading || tasksLoading}
+          taskTodo={taskTodo}
+          taskInProgress={taskInProgress}
+          taskReview={taskReview}
+          taskDone={taskDone}
           insightCount={insights.length}
           feedbackCount={feedbackItems.length}
           activityData={activityData}

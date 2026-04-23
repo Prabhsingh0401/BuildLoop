@@ -100,6 +100,13 @@ function ActivityChart({ data = [], loading }) {
   const first = pts[0];
   const areaPath = `${linePath} L ${last.x} ${H} L ${first.x} ${H} Z`;
 
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dayLabels = raw.map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (raw.length - 1 - i));
+    return days[d.getDay()];
+  });
+
   const peak = Math.max(...raw);
   const total = raw.reduce((a, b) => a + b, 0);
 
@@ -108,8 +115,8 @@ function ActivityChart({ data = [], loading }) {
       {/* Header */}
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">Activity Pulse</h3>
-          <p className="text-sm text-gray-500">Feedback ingested over the last 7 days</p>
+          <h3 className="text-base font-semibold text-gray-900">Task Activity</h3>
+          <p className="text-sm text-gray-500">Tasks created · last 7 days</p>
         </div>
         <div className="flex gap-4 text-right flex-shrink-0">
           <div>
@@ -175,7 +182,14 @@ function ActivityChart({ data = [], loading }) {
         </svg>
       </div>
 
-      {/* Footer — mirrors ProjectCard badge row */}
+      {/* Day labels */}
+      <div className="flex justify-between mt-2 px-0.5">
+        {dayLabels.map((d, i) => (
+          <span key={i} className="text-[10px] text-gray-400 tabular-nums">{d}</span>
+        ))}
+      </div>
+
+      {/* Footer */}
       <div className="flex items-center justify-between mt-3">
         <span className="px-3 py-1 bg-gray-100/80 rounded-full text-xs font-medium text-gray-600">
           7D History
@@ -189,30 +203,30 @@ function ActivityChart({ data = [], loading }) {
   );
 }
 
-/* ─── Feature status bar chart ─── */
-function FeatureStatusChart({ pending = 0, inProgress = 0, done = 0, loading }) {
+/* ─── Kanban status bar chart ─── */
+function KanbanStatusChart({ todo = 0, inProgress = 0, review = 0, done = 0, loading }) {
   if (loading) return <ChartSkeleton />;
 
-  const total = pending + inProgress + done || 1;
+  const total = todo + inProgress + review + done || 1;
   const bars = [
-    { label: 'Pending',     value: pending },
-    { label: 'In Progress', value: inProgress },
-    { label: 'Done',        value: done },
+    { label: 'Todo',         value: todo,       opacity: 'opacity-25' },
+    { label: 'In Progress',  value: inProgress, opacity: 'opacity-55' },
+    { label: 'Under Review', value: review,     opacity: 'opacity-75' },
+    { label: 'Done',         value: done,       opacity: 'opacity-100' },
   ];
 
   return (
     <motion.div {...fadeUp(0.15)} className={`${CARD} p-6`}>
       {/* Header */}
       <div className="mb-5">
-        <h3 className="text-base font-semibold text-gray-900">Feature Status</h3>
-        <p className="text-sm text-gray-500">Pipeline stage breakdown</p>
+        <h3 className="text-base font-semibold text-gray-900">Task Progress</h3>
+        <p className="text-sm text-gray-500">Kanban column breakdown</p>
       </div>
 
       {/* Bars */}
       <div className="space-y-4">
-        {bars.map(({ label, value }, i) => {
+        {bars.map(({ label, value, opacity }) => {
           const pct = Math.round((value / total) * 100);
-          const opacities = ['opacity-90', 'opacity-55', 'opacity-30'];
           return (
             <div key={label}>
               <div className="flex justify-between text-xs mb-1.5">
@@ -221,10 +235,10 @@ function FeatureStatusChart({ pending = 0, inProgress = 0, done = 0, loading }) 
               </div>
               <div className="h-2 w-full bg-gray-100/80 rounded-full overflow-hidden">
                 <motion.div
-                  className={`h-full rounded-full bg-gray-900 ${opacities[i]}`}
+                  className={`h-full rounded-full bg-gray-900 ${opacity}`}
                   initial={{ width: 0 }}
                   animate={{ width: `${pct}%` }}
-                  transition={{ duration: 0.9, delay: 0.12 * i + 0.3, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 0.9, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
                 />
               </div>
             </div>
@@ -235,7 +249,7 @@ function FeatureStatusChart({ pending = 0, inProgress = 0, done = 0, loading }) 
       {/* Footer badge */}
       <div className="mt-5 pt-4 border-t border-gray-100/80">
         <span className="px-3 py-1 bg-gray-100/80 rounded-full text-xs font-medium text-gray-600">
-          {pending + inProgress + done} features total
+          {todo + inProgress + review + done} tasks total
         </span>
       </div>
     </motion.div>
@@ -245,30 +259,32 @@ function FeatureStatusChart({ pending = 0, inProgress = 0, done = 0, loading }) 
 /* ─── Public export ─── */
 export function DashboardStats({
   loading = false,
-  projectCount = 0,
-  featuresPending = 0,
-  featuresInProgress = 0,
-  featuresDone = 0,
+  taskTodo = 0,
+  taskInProgress = 0,
+  taskReview = 0,
+  taskDone = 0,
   insightCount = 0,
   feedbackCount = 0,
   activityData = [],
 }) {
+  const taskTotal = taskTodo + taskInProgress + taskReview + taskDone;
   return (
     <div className="mb-10 space-y-4">
       {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard label="Projects"         value={loading ? '—' : projectCount}    sub="Active workspaces"    delay={0}    loading={loading} />
-        <StatCard label="Insights"         value={loading ? '—' : insightCount}    sub="AI-synthesised"       delay={0.1}  loading={loading} />
-        <StatCard label="Feedback Items"   value={loading ? '—' : feedbackCount}   sub="Ingested total"       delay={0.15} loading={loading} />
+        <StatCard label="Total Tasks"     value={loading ? '—' : taskTotal}      sub="Across all columns"   delay={0}    loading={loading} />
+        <StatCard label="Insights"        value={loading ? '—' : insightCount}   sub="AI-synthesised"       delay={0.1}  loading={loading} />
+        <StatCard label="Feedback Items"  value={loading ? '—' : feedbackCount}  sub="Ingested total"       delay={0.15} loading={loading} />
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <ActivityChart data={activityData} loading={loading} />
-        <FeatureStatusChart
-          pending={featuresPending}
-          inProgress={featuresInProgress}
-          done={featuresDone}
+        <KanbanStatusChart
+          todo={taskTodo}
+          inProgress={taskInProgress}
+          review={taskReview}
+          done={taskDone}
           loading={loading}
         />
       </div>

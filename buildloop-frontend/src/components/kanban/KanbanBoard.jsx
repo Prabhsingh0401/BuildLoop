@@ -178,6 +178,11 @@ export default function KanbanBoard({ searchQuery = '', filters = { assignee: 'a
         matchesDate = diff <= 7 * 24 * 60 * 60 * 1000;
       } else if (filters.date === 'this-month') {
         matchesDate = taskDate.getMonth() === now.getMonth() && taskDate.getFullYear() === now.getFullYear();
+      } else if (filters.date === 'last-3-months') {
+        const diff = now - taskDate;
+        matchesDate = diff <= 90 * 24 * 60 * 60 * 1000;
+      } else if (filters.date === 'this-year') {
+        matchesDate = taskDate.getFullYear() === now.getFullYear();
       }
     }
 

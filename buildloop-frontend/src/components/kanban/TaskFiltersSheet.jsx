@@ -128,6 +128,16 @@ export default function TaskFiltersSheet({ isOpen, onClose, filters, setFilters,
                     active={filters.date === 'this-month'}
                     onClick={() => handleApply('date', 'this-month')}
                   />
+                  <FilterChip
+                    label="Past 3 Months"
+                    active={filters.date === 'last-3-months'}
+                    onClick={() => handleApply('date', 'last-3-months')}
+                  />
+                  <FilterChip
+                    label="This Year"
+                    active={filters.date === 'this-year'}
+                    onClick={() => handleApply('date', 'this-year')}
+                  />
                 </div>
               </div>
             </div>

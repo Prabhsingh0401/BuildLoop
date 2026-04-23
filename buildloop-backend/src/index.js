@@ -19,7 +19,7 @@ async function startServer() {
 
     const app = express();
 
-    // Middleware
+    // Middlewarex
     app.use(helmet());
     app.use(cors());
     app.use(express.json());

@@ -123,6 +123,8 @@ function KanbanContent() {
               <option value="today">Today</option>
               <option value="this-week">Past 7 Days</option>
               <option value="this-month">This Month</option>
+              <option value="last-3-months">Past 3 Months</option>
+              <option value="this-year">This Year</option>
             </select>
           </div>
 
