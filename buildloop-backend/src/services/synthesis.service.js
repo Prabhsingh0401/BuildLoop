@@ -1,4 +1,4 @@
-import { geminiModel as model } from "../lib/gemini.js";
+import { groqModel as model } from "../lib/groq.js";
 import { parseSynthesisOutput } from "./prompts/synthesis.schema.js";
 import { Insight } from "../models/insight.model.js";
 

@@ -28,13 +28,7 @@ import { parseSynthesisOutput }                from "../services/prompts/synthes
 import { parsePrioritizationOutput }           from "../services/prompts/prioritization.schema.js";
 import { anthropicClient, CLAUDE_MODEL }       from "../lib/anthropic.js";
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-const geminiModel = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash",
-});
+import { groqModel as geminiModel } from "../lib/groq.js";
 
 const DEV_MODE = process.env.DEV_MODE === "true";
 

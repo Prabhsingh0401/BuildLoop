@@ -1,4 +1,4 @@
-import { geminiModel as model } from "../lib/gemini.js";
+import { groqModel as model } from "../lib/groq.js";
 import { embedQuery } from "./embedding.service.js";
 import { queryEmbedding } from "../lib/pinecone.js";
 import AppError from "../utils/AppError.js";
@@ -125,7 +125,7 @@ Answer clearly using ONLY the provided code context.`,
 
   const answer = result.response.text();
 
-  console.log(`[INFO][workspace] Gemini response in ${latencyMs}ms`);
+  console.log(`[INFO][workspace] Groq response in ${latencyMs}ms`);
 
   // Step 7 — Build citations
   const citations = matches.map((match, i) => ({

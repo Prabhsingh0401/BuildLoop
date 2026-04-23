@@ -1,4 +1,4 @@
-import { geminiModel as model } from "../lib/gemini.js";
+import { groqModel as model } from "../lib/groq.js";
 import { parsePrioritizationOutput } from "./prompts/prioritization.schema.js";
 import { Insight } from "../models/insight.model.js";
 import { Feature } from "../models/feature.model.js";
@@ -46,7 +46,7 @@ Frequency: ${ins.frequency}`
 
   const rawText = result.response.text();
 
-  console.log(`[INFO][prioritize] Gemini response in ${latencyMs}ms`);
+  console.log(`[INFO][prioritize] Groq response in ${latencyMs}ms`);
 
   // Step 4 — Validate with Zod
   const features = parsePrioritizationOutput(rawText, projectId);
