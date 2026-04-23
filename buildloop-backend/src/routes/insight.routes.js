@@ -2,10 +2,11 @@ import { Router } from 'express';
 import { Insight } from '../models/insight.model.js';
 import { prioritizeInsights } from '../services/prioritization.service.js';
 import { synthesizeFeedback } from '../services/synthesis.service.js';
+import { requireAuth, requirePM } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-router.post('/synthesize', async (req, res, next) => {
+router.post('/synthesize', requireAuth, requirePM, async (req, res, next) => {
   try {
     const { projectId } = req.body;
     if (!projectId) {
@@ -22,7 +23,7 @@ router.post('/synthesize', async (req, res, next) => {
   }
 });
 
-router.post('/prioritize', async (req, res, next) => {
+router.post('/prioritize', requireAuth, requirePM, async (req, res, next) => {
   try {
     const { projectId } = req.body;
     const features = await prioritizeInsights(projectId);

@@ -72,16 +72,28 @@ export const getProjects = async (req, res, next) => {
       console.error('Clerk user lookup failed:', clerkErr.message);
     }
 
-    // Merge: owned first, then assigned (with isOwner flag for the frontend)
+    // Merge: owned first, then assigned (with isOwner flag and members for the frontend)
     const ownedWithFlag = ownedProjects.map((p) => ({
       ...p.toObject(),
       isOwner: true,
       isAssigned: false,
     }));
 
+    // Helper to get members for a project
+    const getProjectMembers = async (projectId) => {
+      return await TeamMember.find({ projectId }).sort({ createdAt: 1 });
+    };
+
+    const projectsWithMembers = await Promise.all(
+      [...ownedWithFlag, ...assignedProjects].map(async (p) => {
+        const members = await getProjectMembers(p._id.toString());
+        return { ...p, members };
+      })
+    );
+
     res.status(200).json({
       success: true,
-      data: [...ownedWithFlag, ...assignedProjects],
+      data: projectsWithMembers,
     });
   } catch (err) {
     next(err);

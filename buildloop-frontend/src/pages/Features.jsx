@@ -24,7 +24,8 @@ async function promoteFeatureToTask(featureId, assignee) {
 }
 
 export default function Features() {
-  const { activeProjectId } = useProjectStore();
+  const { activeProjectId, activeProjectRole } = useProjectStore();
+  const isPM = activeProjectRole === 'owner';
   const queryClient = useQueryClient();
   const [isPrioritizing, setIsPrioritizing] = useState(false);
   const [featureToPromote, setFeatureToPromote] = useState(null);
@@ -59,6 +60,7 @@ export default function Features() {
   };
 
   const handlePromoteClick = (feature) => {
+    if (!isPM) return;
     if (feature.isPromoted) {
       toast.info('Already on the Kanban board.');
       return;
@@ -70,6 +72,7 @@ export default function Features() {
     setIsPromoting(true);
     try {
       await promoteFeatureToTask(featureId, assignee);
+      queryClient.invalidateQueries({ queryKey: ['features', activeProjectId] });
       queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
       toast.success(`Sent to Kanban.`);
       setFeatureToPromote(null);
@@ -124,20 +127,22 @@ export default function Features() {
             </p>
           </div>
 
-          <button
-            onClick={handlePrioritize}
-            disabled={isPrioritizing}
-            className={`
-              flex items-center gap-2.5 px-7 py-3 rounded-full text-sm font-semibold transition-all duration-200 active:scale-95
-              ${isPrioritizing
-                ? 'bg-ink/10 text-ink-3 cursor-not-allowed'
-                : 'bg-[#1a1d23] hover:bg-black text-white shadow-md shadow-black/10'
-              }
-            `}
-          >
-            {isPrioritizing && <Loader2 size={16} className="animate-spin" />}
-            {isPrioritizing ? 'Prioritizing…' : 'Run Prioritization'}
-          </button>
+          {isPM && (
+            <button
+              onClick={handlePrioritize}
+              disabled={isPrioritizing}
+              className={`
+                flex items-center gap-2.5 px-7 py-3 rounded-full text-sm font-semibold transition-all duration-200 active:scale-95
+                ${isPrioritizing
+                  ? 'bg-ink/10 text-ink-3 cursor-not-allowed'
+                  : 'bg-[#1a1d23] hover:bg-black text-white shadow-md shadow-black/10'
+                }
+              `}
+            >
+              {isPrioritizing && <Loader2 size={16} className="animate-spin" />}
+              {isPrioritizing ? 'Prioritizing…' : 'Run Prioritization'}
+            </button>
+          )}
         </div>
 
         {/* Table/Empty Area */}
@@ -154,7 +159,7 @@ export default function Features() {
         ) : (
           <FeatureTable
             features={features}
-            onPromote={handlePromoteClick}
+            onPromote={isPM ? handlePromoteClick : null}
             onRowClick={() => {}}
           />
         )}

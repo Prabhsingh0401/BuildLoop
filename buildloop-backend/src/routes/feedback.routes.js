@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { Feedback } from '../models/feedback.model.js';
 import { ingestFeedback } from '../services/ingestion.service.js';
 import { deleteVectors } from '../lib/pinecone.js';
+import { requireAuth, requirePM } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
@@ -9,7 +10,7 @@ const router = Router();
  * Task 1 — POST /api/feedback
  * Main entry point for user feedback ingestion.
  */
-router.post('/', async (req, res, next) => {
+router.post('/', requireAuth, requirePM, async (req, res, next) => {
   try {
     const { rawText, projectId, source, metaType } = req.body;
     const userId = req.auth?.userId;
@@ -69,7 +70,7 @@ router.get('/:projectId', async (req, res, next) => {
  * Task 2 — DELETE /api/feedback/:id
  * Deletes feedback from Pinecone and MongoDB.
  */
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params;
 

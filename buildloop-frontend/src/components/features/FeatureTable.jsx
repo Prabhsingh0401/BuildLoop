@@ -26,7 +26,7 @@ export default function FeatureTable({ features, onRowClick, onPromote }) {
 
   const handlePromote = async (e, feature) => {
     e.stopPropagation();
-    if (promotingId || feature.isPromoted) return;
+    if (!onPromote || promotingId || feature.isPromoted) return;
 
     setPromotingId(feature._id);
     try {
@@ -61,7 +61,9 @@ export default function FeatureTable({ features, onRowClick, onPromote }) {
               <th className="text-left px-4 py-4 text-[10px] font-bold text-ink-3 uppercase tracking-wider">Effort</th>
               <th className="text-left px-4 py-4 text-[10px] font-bold text-ink-3 uppercase tracking-wider">Impact</th>
               <th className="text-left px-4 py-4 text-[10px] font-bold text-ink-3 uppercase tracking-wider">Status</th>
-              <th className="text-right px-6 py-4 text-[10px] font-bold text-ink-3 uppercase tracking-wider">Action</th>
+              {onPromote && (
+                <th className="text-right px-6 py-4 text-[10px] font-bold text-ink-3 uppercase tracking-wider">Action</th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-white/10">
@@ -92,29 +94,31 @@ export default function FeatureTable({ features, onRowClick, onPromote }) {
                       {statusLabels[feature.status] || feature.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={(e) => handlePromote(e, feature)}
-                      disabled={isPromoting || isPromoted}
-                      className={`
-                        inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all
-                        ${isPromoted
-                          ? 'text-success'
-                          : isPromoting
-                          ? 'text-ink-3'
-                          : 'bg-ink text-white hover:bg-black'}
-                      `}
-                    >
-                      {isPromoting ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : isPromoted ? (
-                        <CheckCircle2 size={12} />
-                      ) : (
-                        <Zap size={10} fill="currentColor" />
-                      )}
-                      {isPromoted ? 'Sent' : isPromoting ? 'Sending…' : 'Send to Kanban'}
-                    </button>
-                  </td>
+                  {onPromote && (
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={(e) => handlePromote(e, feature)}
+                        disabled={isPromoting || isPromoted}
+                        className={`
+                          inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all
+                          ${isPromoted
+                            ? 'text-success'
+                            : isPromoting
+                            ? 'text-ink-3'
+                            : 'bg-ink text-white hover:bg-black'}
+                        `}
+                      >
+                        {isPromoting ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : isPromoted ? (
+                          <CheckCircle2 size={12} />
+                        ) : (
+                          <Zap size={10} fill="currentColor" />
+                        )}
+                        {isPromoted ? 'Sent' : isPromoting ? 'Sending…' : 'Send to Kanban'}
+                      </button>
+                    </td>
+                  )}
                 </motion.tr>
               );
             })}
@@ -151,17 +155,19 @@ function FeatureCard({ feature, onPromote, isPromoting, index }) {
           {statusLabels[feature.status] || feature.status}
         </span>
 
-        <button
-          onClick={(e) => onPromote(e, feature)}
-          disabled={isPromoting || isPromoted}
-          className={`
-            inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold
-            ${isPromoted ? 'text-success' : isPromoting ? 'text-ink-3' : 'bg-ink text-white'}
-          `}
-        >
-          {isPromoting ? <Loader2 size={12} className="animate-spin" /> : isPromoted ? <CheckCircle2 size={12} /> : null}
-          {isPromoted ? 'Sent' : isPromoting ? 'Sending…' : 'Send to Kanban'}
-        </button>
+        {onPromote && (
+          <button
+            onClick={(e) => onPromote(e, feature)}
+            disabled={isPromoting || isPromoted}
+            className={`
+              inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold
+              ${isPromoted ? 'text-success' : isPromoting ? 'text-ink-3' : 'bg-ink text-white'}
+            `}
+          >
+            {isPromoting ? <Loader2 size={12} className="animate-spin" /> : isPromoted ? <CheckCircle2 size={12} /> : null}
+            {isPromoted ? 'Sent' : isPromoting ? 'Sending…' : 'Send to Kanban'}
+          </button>
+        )}
       </div>
     </motion.div>
   );

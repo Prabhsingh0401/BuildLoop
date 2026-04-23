@@ -46,7 +46,8 @@ function AuthGuard() {
 /* ─── Main Content ───────────────────────────────────────────── */
 function KanbanContent() {
   const { openModal } = useUIStore();
-  const { activeProjectId } = useProjectStore();
+  const { activeProjectId, activeProjectRole } = useProjectStore();
+  const isPM = activeProjectRole === 'owner';
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ assignee: 'all', date: 'all' });
   const [showFilters, setShowFilters] = useState(false);
@@ -144,15 +145,17 @@ function KanbanContent() {
             )}
           </motion.button>
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => openModal('createTask')}
-            className="h-11 px-5 rounded-full bg-[#1a1d23] text-white font-semibold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-md active:scale-95"
-          >
-            <Plus size={16} strokeWidth={2.5} />
-            New Task
-          </motion.button>
+          {isPM && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => openModal('createTask')}
+              className="h-11 px-5 rounded-full bg-[#1a1d23] text-white font-semibold text-sm flex items-center gap-2 hover:bg-black transition-all shadow-md active:scale-95"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              New Task
+            </motion.button>
+          )}
         </div>
       </motion.div>
 

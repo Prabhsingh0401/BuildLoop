@@ -5,7 +5,7 @@ import { Task } from '../models/task.model.js';
 
 // Replace with exact auth middleware import confirmed from
 // buildloop-backend/src/middlewares/
-import { requireAuth } from '../middleware/auth.middleware.js';
+import { requireAuth, requirePMForFeature } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -107,7 +107,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
 // Returns 404 if feature not found.
 // Returns 400 if :id is not a valid ObjectId.
 // Auth: required.
-router.post('/:id/task', requireAuth, async (req, res) => {
+router.post('/:id/task', requireAuth, requirePMForFeature(Feature), async (req, res) => {
   try {
     const { id } = req.params;
 

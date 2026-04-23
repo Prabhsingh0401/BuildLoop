@@ -2,12 +2,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/clerk-react';
 import { fetchProjects } from '../services/projectService';
+import useProjectStore from '../store/projectStore';
 import {
   fetchTeamMembers,
   addTeamMember,
   updateTeamMember,
   deleteTeamMember,
 } from '../services/teamService';
+import { fetchInsights } from '../services/insightService';
+import { fetchProjectFeedback } from '../services/feedbackService';
+import { DashboardStats } from '../components/ui/DashboardStats';
 import {
   FolderKanban,
   Plus,
@@ -77,11 +81,41 @@ const SkeletonCard = () => (
 );
 
 /* ─────────────────────────────────────────── */
+/* Member Avatars Group                        */
+/* ─────────────────────────────────────────── */
+const MemberAvatars = ({ members = [] }) => {
+  if (members.length === 0) return null;
+
+  const displayMembers = members.slice(0, 3);
+  const remaining = members.length - 3;
+
+  return (
+    <div className="flex -space-x-2 overflow-hidden">
+      {displayMembers.map((member, i) => (
+        <div
+          key={member._id || i}
+          className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-600 uppercase"
+          title={member.name || member.email}
+        >
+          {(member.name || member.email || '?')[0]}
+        </div>
+      ))}
+      {remaining > 0 && (
+        <div className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-gray-50 flex items-center justify-center text-[10px] font-bold text-gray-400">
+          +{remaining}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ─────────────────────────────────────────── */
 /* Project Card                                */
 /* ─────────────────────────────────────────── */
 const ProjectCard = ({ project, index, onManageTeam }) => {
   const isOwner = project.isOwner;
   const devRole = project.role; // only set when isAssigned
+  const members = project.members || [];
 
   return (
     <motion.div
@@ -120,7 +154,10 @@ const ProjectCard = ({ project, index, onManageTeam }) => {
               </span>
             )}
           </div>
-          <ArrowRight className="w-5 h-5 text-gray-400 group-hover:translate-x-1 transition-all" />
+          <div className="flex items-center gap-3">
+            <MemberAvatars members={members} />
+            <ArrowRight className="w-5 h-5 text-gray-400 group-hover:translate-x-1 transition-all" />
+          </div>
         </div>
       </NavLink>
 
@@ -179,6 +216,7 @@ function TeamMembersDialog({ project, onClose, token }) {
     mutationFn: (payload) => addTeamMember(payload, token),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teamMembers', project?._id] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       setEmail('');
       setName('');
       setRole('Developer');
@@ -192,6 +230,7 @@ function TeamMembersDialog({ project, onClose, token }) {
     mutationFn: ({ id, payload }) => updateTeamMember(id, payload, token),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teamMembers', project?._id] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       setEditingId(null);
       toast.success('Member updated');
     },
@@ -203,6 +242,7 @@ function TeamMembersDialog({ project, onClose, token }) {
     mutationFn: (id) => deleteTeamMember(id, token),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teamMembers', project?._id] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Member removed from project');
     },
     onError: (err) => toast.error(err.message),
@@ -486,6 +526,7 @@ export default function Dashboard() {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const [token, setToken] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null); // project object for dialog
+  const { activeProjectId } = useProjectStore();
 
   // Pre-fetch token
   useEffect(() => {
@@ -508,6 +549,49 @@ export default function Dashboard() {
   const ownedProjects = projects.filter((p) => p.isOwner);
   const assignedProjects = projects.filter((p) => p.isAssigned);
 
+  // Stats are scoped to the currently active project in the selector.
+  // Falls back to the first owned project if nothing is selected yet.
+  const statsProjectId = activeProjectId || ownedProjects[0]?._id;
+
+  const { data: insightsData } = useQuery({
+    queryKey: ['insights-dash', statsProjectId],
+    queryFn: async () => {
+      const t = await getToken();
+      return fetchInsights(statsProjectId, t);
+    },
+    enabled: !!statsProjectId && isLoaded && isSignedIn,
+  });
+
+  const { data: feedbackData } = useQuery({
+    queryKey: ['feedback-dash', statsProjectId],
+    queryFn: async () => {
+      const t = await getToken();
+      return fetchProjectFeedback(statsProjectId, t);
+    },
+    enabled: !!statsProjectId && isLoaded && isSignedIn,
+  });
+
+  const insights = insightsData?.data || [];
+  const feedbackItems = feedbackData?.data || [];
+
+  // Features by status from insights
+  const featuresPending = insights.filter((i) => i.status === 'pending' || !i.status).length;
+  const featuresInProgress = insights.filter((i) => i.status === 'in_progress').length;
+  const featuresDone = insights.filter((i) => i.status === 'done').length;
+
+  // Build 7-day activity spark from feedback createdAt
+  const activityData = (() => {
+    const today = new Date();
+    const buckets = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - (6 - i));
+      return d.toDateString();
+    });
+    return buckets.map((day) =>
+      feedbackItems.filter((f) => new Date(f.createdAt).toDateString() === day).length
+    );
+  })();
+
   const handleOpenTeamDialog = async (project) => {
     if (!token) {
       const t = await getToken();
@@ -522,6 +606,18 @@ export default function Dashboard() {
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#E2E8F0_1px,transparent_1px),linear-gradient(to_bottom,#E2E8F0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_10%,transparent_100%)] opacity-40 pointer-events-none" />
 
       <div className="z-10 w-full max-w-7xl mx-auto">
+
+        {/* ── Stats + Charts ── */}
+        <DashboardStats
+          loading={isLoading}
+          projectCount={projects.length}
+          featuresPending={featuresPending}
+          featuresInProgress={featuresInProgress}
+          featuresDone={featuresDone}
+          insightCount={insights.length}
+          feedbackCount={feedbackItems.length}
+          activityData={activityData}
+        />
 
         {/* ── My Projects (PM view) ── */}
         <div className="mb-10">

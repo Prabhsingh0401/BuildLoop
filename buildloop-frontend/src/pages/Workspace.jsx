@@ -68,8 +68,11 @@ export default function WorkspacePage() {
     };
   }, [onMouseMove, onMouseUp]);
 
+  // Mobile tab state
+  const [activeTab, setActiveTab] = useState('git');
+
   return (
-    <div className="relative min-h-[calc(100vh-140px)] flex flex-col py-10 px-4">
+    <div className="relative min-h-[calc(100vh-140px)] flex flex-col py-6 px-4 md:py-10">
       {/* Grid background */}
       <div
         className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#E2E8F0_1px,transparent_1px),linear-gradient(to_bottom,#E2E8F0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_10%,transparent_100%)] opacity-40 pointer-events-none"
@@ -82,7 +85,7 @@ export default function WorkspacePage() {
           initial="initial"
           animate="animate"
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-6 shrink-0"
+          className="mb-4 shrink-0"
         >
           <h1 className="text-[22px] font-semibold text-ink leading-tight">Workspace</h1>
           <p className="text-sm text-ink-3 mt-0.5">
@@ -90,10 +93,57 @@ export default function WorkspacePage() {
           </p>
         </motion.div>
 
-        {/* Resizable Content Panels */}
+        {/* ── MOBILE: Tab bar ── */}
+        <div className="md:hidden flex shrink-0 mb-3 bg-surface border border-border rounded-card p-1 gap-1">
+          <button
+            id="workspace-tab-git"
+            onClick={() => setActiveTab('git')}
+            className={`flex-1 py-2 text-sm font-semibold rounded-[8px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 ${
+              activeTab === 'git'
+                ? 'bg-ink text-surface'
+                : 'text-ink-3 hover:text-ink'
+            }`}
+          >
+            Git
+          </button>
+          <button
+            id="workspace-tab-chat"
+            onClick={() => setActiveTab('chat')}
+            className={`flex-1 py-2 text-sm font-semibold rounded-[8px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 ${
+              activeTab === 'chat'
+                ? 'bg-ink text-surface'
+                : 'text-ink-3 hover:text-ink'
+            }`}
+          >
+            Chat
+          </button>
+        </div>
+
+        {/* ── MOBILE: Single active panel ── */}
+        <div className="md:hidden flex-1 min-h-0 overflow-hidden">
+          {activeTab === 'git' ? (
+            <div className="h-full bg-surface border border-border rounded-card overflow-hidden">
+              <GithubIntegration projectId={projectId} onRepoSelect={setActiveRepo} />
+            </div>
+          ) : (
+            <div className="h-full">
+              <ChatInterface
+                messages={messages}
+                isAsking={isAsking}
+                askError={askError}
+                onAsk={(q) => ask(q, activeRepo)}
+                onClear={clearHistory}
+                hasFiles={hasFiles}
+                activeRepo={activeRepo}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ── DESKTOP: Resizable split panels ── */}
         <motion.div
           ref={containerRef}
-          className="flex flex-1 min-h-0 gap-0"
+          className="hidden md:flex flex-1 min-h-0 gap-0"
           variants={{ animate: { transition: { staggerChildren: 0.1 } } }}
           initial="initial"
           animate="animate"

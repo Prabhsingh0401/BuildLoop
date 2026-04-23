@@ -8,6 +8,7 @@ import {
 import InsightCard, { InsightCardSkeleton } from '@/components/insights/InsightCard';
 import { useInsights } from '@/hooks/useInsights';
 import { toast } from 'sonner';
+import useProjectStore from '@/store/projectStore.js';
 
 const CARD_BASE =
   'bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)]';
@@ -44,7 +45,7 @@ function AuthGuard() {
 }
 
 /* ─── Empty State ────────────────────────────────────────────── */
-function EmptyState({ onSynthesize, isSynthesizing }) {
+function EmptyState({ onSynthesize, isSynthesizing, isPM }) {
   return (
     <motion.div
       variants={fadeUp}
@@ -59,10 +60,12 @@ function EmptyState({ onSynthesize, isSynthesizing }) {
       <div>
         <p className="text-[15px] font-semibold text-ink">No insights yet</p>
         <p className="text-sm text-ink-3 mt-1 max-w-xs">
-          Run the synthesis pipeline to cluster your feedback into AI-generated insights.
+          {isPM
+            ? 'Run the synthesis pipeline to cluster your feedback into AI-generated insights.'
+            : 'The project owner hasn\'t synthesized any insights yet.'}
         </p>
       </div>
-      <SynthesizeButton onClick={onSynthesize} isLoading={isSynthesizing} />
+      {isPM && <SynthesizeButton onClick={onSynthesize} isLoading={isSynthesizing} />}
     </motion.div>
   );
 }
@@ -126,6 +129,8 @@ function InsightsContent() {
     isSynthesizing, 
     synthError 
   } = useInsights();
+  const { activeProjectRole } = useProjectStore();
+  const isPM = activeProjectRole === 'owner';
 
   const handleSynthesize = async () => {
     try {
@@ -155,7 +160,7 @@ function InsightsContent() {
           </div>
         </div>
 
-        {!isLoading && !isError && insights.length > 0 && (
+        {!isLoading && !isError && insights.length > 0 && isPM && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -191,7 +196,7 @@ function InsightsContent() {
       ) : isError ? (
         <ErrorState message={error?.message ?? 'Unknown error'} onRetry={refetch} />
       ) : insights.length === 0 ? (
-        <EmptyState onSynthesize={handleSynthesize} isSynthesizing={isSynthesizing} />
+        <EmptyState onSynthesize={handleSynthesize} isSynthesizing={isSynthesizing} isPM={isPM} />
       ) : (
         <motion.div
           initial="initial"

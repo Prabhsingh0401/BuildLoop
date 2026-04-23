@@ -9,7 +9,7 @@ import { fetchProjects, createProject } from '../../services/projectService';
 export default function ProjectSelector({ iconOnly = false }) {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const queryClient = useQueryClient();
-  const { activeProjectId, setActiveProjectId } = useProjectStore();
+  const { activeProjectId, setActiveProject } = useProjectStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -31,9 +31,10 @@ export default function ProjectSelector({ iconOnly = false }) {
 
   useEffect(() => {
     if (projects.length > 0 && !activeProjectId) {
-      setActiveProjectId(projects[0]._id);
+      const first = projects[0];
+      setActiveProject(first._id, first.isOwner ? 'owner' : 'member');
     }
-  }, [projects, activeProjectId, setActiveProjectId]);
+  }, [projects, activeProjectId, setActiveProject]);
 
   const createMutation = useMutation({
     mutationFn: async (name) => {
@@ -42,7 +43,7 @@ export default function ProjectSelector({ iconOnly = false }) {
     },
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      setActiveProjectId(res.data._id);
+      setActiveProject(res.data._id, 'owner');
       setIsCreating(false);
       setNewProjectName('');
       setIsOpen(false);
@@ -99,7 +100,7 @@ export default function ProjectSelector({ iconOnly = false }) {
                 <button
                   key={project._id}
                   onClick={() => {
-                    setActiveProjectId(project._id);
+                    setActiveProject(project._id, project.isOwner ? 'owner' : 'member');
                     setIsOpen(false);
                   }}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${

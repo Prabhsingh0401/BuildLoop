@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
-import { MessageSquare, History } from 'lucide-react';
+import { MessageSquare, History, Lock } from 'lucide-react';
 import FeedbackForm from '@/components/feedback/FeedbackForm';
 import FeedbackList from '@/components/feedback/FeedbackList';
+import useProjectStore from '@/store/projectStore.js';
 
 const fadeUp = {
   initial: { opacity: 0, y: 20 },
@@ -9,6 +10,8 @@ const fadeUp = {
 };
 
 export default function Feedback() {
+  const { activeProjectRole } = useProjectStore();
+  const isPM = activeProjectRole === 'owner';
   return (
     <div className="relative min-h-[calc(100vh-140px)] flex flex-col py-10 px-4">
       {/* Grid background */}
@@ -50,7 +53,7 @@ export default function Feedback() {
             </div>
           </motion.div>
 
-          {/* Right Column: Add Feedback Form */}
+          {/* Right Column: Add Feedback Form (PM only) or read-only notice */}
           <motion.div
             variants={fadeUp}
             initial="initial"
@@ -58,9 +61,21 @@ export default function Feedback() {
             transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="w-full lg:w-1/2 flex flex-col mt-9"
           >
-            <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-6">
-              <FeedbackForm />
-            </div>
+            {isPM ? (
+              <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-6">
+                <FeedbackForm />
+              </div>
+            ) : (
+              <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-center min-h-[180px]">
+                <div className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center">
+                  <Lock className="w-4 h-4 text-gray-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-700">View only</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Only the project owner can submit feedback.</p>
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
       </div>

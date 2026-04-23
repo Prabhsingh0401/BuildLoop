@@ -1,7 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { Task } from '../models/task.model.js';
-import { requireAuth } from '../middleware/auth.middleware.js';
+import { requireAuth, requirePM, requirePMForTask } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -35,7 +35,7 @@ router.get('/:id/subtasks', requireAuth, async (req, res) => {
 // Required body: title
 // Optional body: description, assignee
 // Auth: required.
-router.post('/:id/subtasks', requireAuth, async (req, res) => {
+router.post('/:id/subtasks', requireAuth, requirePMForTask(Task), async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -96,7 +96,7 @@ router.get('/:projectId', requireAuth, async (req, res) => {
 // Optional body: description, tags, assignee, featureId
 // Returns 400 if required fields are missing or invalid.
 // Auth: required.
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, requirePM, async (req, res) => {
   try {
     const {
       title,
