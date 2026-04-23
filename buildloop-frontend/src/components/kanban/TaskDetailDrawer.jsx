@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import apiClient from '@/api/client.js';
 import useProjectStore from '@/store/projectStore.js';
+import ConfirmModal from '@/components/ui/ConfirmModal.jsx';
 
 /* ─── Subtask Item ─────────────────────────────────────────────── */
 function SubtaskItem({ subtask, onToggle, onDelete }) {
@@ -78,6 +79,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
   const [editedDescription, setEditedDescription] = useState(task?.description || '');
   const [editedAssignee, setEditedAssignee] = useState(task?.assignee || '');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Subtask state
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
@@ -202,10 +204,12 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
   };
 
   const handleDelete = () => {
-    if (window.confirm('Delete this task and all its subtasks?')) {
-      setIsDeleting(true);
-      deleteMutation.mutate();
-    }
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    setIsDeleting(true);
+    deleteMutation.mutate();
   };
 
   const handleClose = () => {
@@ -219,7 +223,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
     addSubtaskMutation.mutate(newSubtaskTitle.trim());
   };
 
-  return (
+  return (<>
     <Dialog open={!!task} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
         showCloseButton={false}
@@ -566,5 +570,15 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
         </motion.div>
       </DialogContent>
     </Dialog>
-  );
-}
+
+    <ConfirmModal
+      open={showDeleteConfirm}
+      onClose={() => setShowDeleteConfirm(false)}
+      onConfirm={confirmDelete}
+      loading={isDeleting}
+      title="Delete this task?"
+      description="This will permanently delete the task and all its subtasks. This action cannot be undone."
+      confirmLabel="Delete Task"
+    />
+  </>);
+}

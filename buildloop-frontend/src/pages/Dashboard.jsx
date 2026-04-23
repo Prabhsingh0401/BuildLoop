@@ -13,6 +13,7 @@ import { fetchProjectFeedback } from '../services/feedbackService';
 import { fetchInsights } from '../services/insightService';
 import apiClient from '../api/client.js';
 import { DashboardStats } from '../components/ui/DashboardStats';
+import ConfirmModal from '../components/ui/ConfirmModal.jsx';
 import {
   FolderKanban,
   Plus,
@@ -113,7 +114,7 @@ const MemberAvatars = ({ members = [] }) => {
 /* ─────────────────────────────────────────── */
 /* Project Card                                */
 /* ─────────────────────────────────────────── */
-const ProjectCard = ({ project, index, onManageTeam }) => {
+const ProjectCard = ({ project, index, onManageTeam, onDelete }) => {
   const isOwner = project.isOwner;
   const devRole = project.role; // only set when isAssigned
   const members = project.members || [];
@@ -164,16 +165,28 @@ const ProjectCard = ({ project, index, onManageTeam }) => {
 
       {/* Add Member button — only for projects the user owns */}
       {isOwner && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onManageTeam(project);
-          }}
-          className="mt-2.5 w-full flex items-center justify-center gap-1.5 px-4 py-2 bg-white/70 hover:bg-white backdrop-blur-sm border border-white/50 shadow-sm hover:shadow-md rounded-xl text-xs font-semibold text-gray-600 hover:text-gray-900 transition-all active:scale-[0.98]"
-        >
-          <Users className="w-3.5 h-3.5" />
-          Add Member
-        </button>
+        <div className="mt-2.5 flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onManageTeam(project);
+            }}
+            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-white/70 hover:bg-white backdrop-blur-sm border border-white/50 shadow-sm hover:shadow-md rounded-xl text-xs font-semibold text-gray-600 hover:text-gray-900 transition-all active:scale-[0.98]"
+          >
+            <Users className="w-3.5 h-3.5" />
+            Add Member
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(project);
+            }}
+            className="flex items-center justify-center px-3 py-2 bg-white/70 hover:bg-red-50 backdrop-blur-sm border border-white/50 hover:border-red-100 shadow-sm rounded-xl text-gray-400 hover:text-red-500 transition-all active:scale-[0.98]"
+            title="Delete project"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
       )}
     </motion.div>
   );
@@ -526,8 +539,11 @@ function TeamMembersDialog({ project, onClose, token }) {
 export default function Dashboard() {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const [token, setToken] = useState(null);
-  const [selectedProject, setSelectedProject] = useState(null); // project object for dialog
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
   const { activeProjectId } = useProjectStore();
+  const queryClient = useQueryClient();
 
   // Pre-fetch token
   useEffect(() => {
@@ -612,6 +628,25 @@ export default function Dashboard() {
     setSelectedProject(project);
   };
 
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (projectId) => {
+      await apiClient.delete(`/api/projects/${projectId}`);
+    },
+    onSuccess: (_, projectId) => {
+      queryClient.setQueryData(['projects'], (old) =>
+        old ? { ...old, data: old.data.filter((p) => p._id !== projectId) } : old
+      );
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      setProjectToDelete(null);
+      setIsDeletingProject(false);
+      toast.success('Project deleted');
+    },
+    onError: (err) => {
+      setIsDeletingProject(false);
+      toast.error(err.message || 'Failed to delete project');
+    },
+  });
+
   return (
     <div className="relative min-h-[calc(100vh-140px)] flex flex-col py-10 px-4">
       {/* background grid */}
@@ -676,6 +711,7 @@ export default function Dashboard() {
                   project={project}
                   index={index}
                   onManageTeam={handleOpenTeamDialog}
+                  onDelete={(p) => setProjectToDelete(p)}
                 />
               ))
             )}
@@ -711,6 +747,20 @@ export default function Dashboard() {
         project={selectedProject}
         onClose={() => setSelectedProject(null)}
         token={token}
+      />
+
+      <ConfirmModal
+        open={!!projectToDelete}
+        onClose={() => !isDeletingProject && setProjectToDelete(null)}
+        onConfirm={() => {
+          if (!projectToDelete) return;
+          setIsDeletingProject(true);
+          deleteProjectMutation.mutate(projectToDelete._id);
+        }}
+        loading={isDeletingProject}
+        title={`Delete "${projectToDelete?.name}"?`}
+        description="This will permanently delete the project along with all its tasks, feedback, insights, features, and team members. This cannot be undone."
+        confirmLabel="Delete Project"
       />
     </div>
   );

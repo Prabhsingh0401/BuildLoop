@@ -113,3 +113,35 @@ export const getProjectById = async (req, res, next) => {
     next(err);
   }
 };
+
+export const deleteProject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.auth?.userId;
+    if (!userId) throw new AppError('Unauthorized', 401);
+
+    // Only the owner can delete
+    const project = await Project.findOne({ _id: id, createdBy: userId });
+    if (!project) throw new AppError('Project not found or not authorized', 404);
+
+    // Hard-delete all associated data
+    const { Task } = await import('../models/task.model.js');
+    const { Feedback } = await import('../models/feedback.model.js');
+    const { Insight } = await import('../models/insight.model.js');
+    const { Feature } = await import('../models/feature.model.js');
+
+    await Promise.all([
+      Task.deleteMany({ projectId: id }),
+      Feedback.deleteMany({ projectId: id }),
+      Insight.deleteMany({ projectId: id }),
+      Feature.deleteMany({ projectId: id }),
+      TeamMember.deleteMany({ projectId: id }),
+    ]);
+
+    await Project.findByIdAndDelete(id);
+
+    res.status(200).json({ success: true, message: 'Project deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+};

@@ -236,7 +236,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
 });
 
 // ─── DELETE /api/tasks/:id ───────────────────────────────────────
-// Deletes a task by ID.
+// Hard-deletes a task and all its subtasks.
 // Returns 404 if task not found.
 // Auth: required.
 router.delete('/:id', requireAuth, async (req, res) => {
@@ -252,6 +252,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
+
+    // Cascade: delete all subtasks belonging to this parent
+    await Task.deleteMany({ parentTaskId: id });
 
     return res.status(200).json({ message: 'Task deleted successfully' });
   } catch (err) {
