@@ -1,4 +1,5 @@
 import { TeamMember } from '../models/teamMember.model.js';
+import { Notification } from '../models/notification.model.js';
 import AppError from '../utils/AppError.js';
 
 /**
@@ -24,6 +25,14 @@ export const addTeamMember = async (req, res, next) => {
       projectId,
     });
     await member.save();
+
+    // Create Notification
+    await Notification.create({
+      userEmail: email.toLowerCase(),
+      projectId,
+      type: 'PROJECT_ASSIGNMENT',
+      message: `You have been added to a new project as a ${role}.`,
+    });
 
     res.status(201).json({ success: true, data: member });
   } catch (err) {

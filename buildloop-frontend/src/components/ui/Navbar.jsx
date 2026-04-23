@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import ProjectSelector from './ProjectSelector';
+import NotificationMenu from './NotificationMenu';
 import useProjectStore from '../../store/projectStore';
 import { fetchProjects, createProject } from '../../services/projectService';
 
@@ -122,10 +123,9 @@ export default function Navbar() {
               <ProjectSelector iconOnly />
             </SignedIn>
 
-            <button className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all relative group">
-              <Bell className="w-5 h-5 transition-transform group-hover:rotate-12" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
+            <SignedIn>
+              <NotificationMenu />
+            </SignedIn>
 
             <div className="pl-2 border-l border-gray-100 ml-1">
               <SignedIn>
@@ -234,10 +234,9 @@ export default function Navbar() {
               <ProjectSelector iconOnly />
             </SignedIn>
 
-            <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all relative group">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-white"></span>
-            </button>
+            <SignedIn>
+              <NotificationMenu />
+            </SignedIn>
 
             <div className="pl-1 border-l border-gray-100 ml-1">
               <SignedIn>

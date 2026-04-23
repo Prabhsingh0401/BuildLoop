@@ -1,6 +1,8 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import { Task } from '../models/task.model.js';
+import { TeamMember } from '../models/teamMember.model.js';
+import { Notification } from '../models/notification.model.js';
 import { requireAuth, requirePM, requirePMForTask } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
@@ -140,6 +142,21 @@ router.post('/', requireAuth, requirePM, async (req, res) => {
       status:      status ?? 'todo',
     });
 
+    if (assignee) {
+      const member = await TeamMember.findOne({
+        $or: [{ name: assignee }, { email: assignee }],
+        projectId: task.projectId
+      });
+      if (member) {
+        await Notification.create({
+          userEmail: member.email,
+          projectId: task.projectId,
+          type: 'TASK_ASSIGNMENT',
+          message: `You have been assigned to a task: "${task.title}"`,
+        });
+      }
+    }
+
     return res.status(201).json({ task });
   } catch (err) {
     return res.status(err.name === 'ValidationError' ? 400 : 500).json({ error: err.message || 'Failed to create task' });
@@ -193,6 +210,22 @@ router.patch('/:id', requireAuth, async (req, res) => {
 
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // If assignee was updated and is not null, send notification
+    if (body.assignee) {
+      const member = await TeamMember.findOne({
+        $or: [{ name: body.assignee }, { email: body.assignee }],
+        projectId: task.projectId
+      });
+      if (member) {
+        await Notification.create({
+          userEmail: member.email,
+          projectId: task.projectId,
+          type: 'TASK_ASSIGNMENT',
+          message: `You have been assigned to a task: "${task.title}"`,
+        });
+      }
     }
 
     return res.status(200).json({ task });
