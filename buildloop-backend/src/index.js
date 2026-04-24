@@ -28,6 +28,11 @@ async function startServer() {
     // Public GitHub OAuth routes (no auth required)
     app.use('/api/integrations/github', publicGithubRouter);
 
+    // Root health check - for Render's default health probe
+    app.get('/', (req, res) => {
+      res.json({ success: true, status: 'ok' });
+    });
+
     // Health check - public endpoint
     app.get('/health', (req, res) => {
       res.json({
