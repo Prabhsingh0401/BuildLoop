@@ -2,7 +2,7 @@ services:
   - type: web
     name: buildloop-backend
     runtime: node
-    rootDir: buildloop-backend
+    rootDir: buildloop-backend-fixed
     buildCommand: npm ci --omit=dev
     startCommand: npm start
     healthCheckPath: /health

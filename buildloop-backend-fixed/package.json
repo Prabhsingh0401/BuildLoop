@@ -9,7 +9,7 @@
     "start": "node src/index.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.91.1",
+    "@anthropic-ai/sdk": "^0.80.0",
     "@aws-sdk/client-s3": "^3.1024.0",
     "@clerk/backend": "^3.2.3",
     "@google/generative-ai": "^0.24.1",
@@ -25,7 +25,7 @@
     "mongoose": "^9.3.3",
     "multer": "^2.1.1",
     "node-fetch": "^2.7.0",
-    "voyageai": "^0.2.1",
+    "voyageai": "^0.0.6",
     "zod": "^4.3.6"
   },
   "devDependencies": {
