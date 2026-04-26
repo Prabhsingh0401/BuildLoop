@@ -6,7 +6,9 @@ import router from './routes/index.js';
 import { connectDB } from './lib/mongo.js';
 import { verifyClerkAuth, requireAuth } from './middleware/auth.middleware.js';
 
-dotenv.config();
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 // Public (no-auth) GitHub OAuth helpers – must be registered before the
 // auth middleware so the browser can reach them during the OAuth flow.
