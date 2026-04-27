@@ -114,7 +114,7 @@ const MemberAvatars = ({ members = [] }) => {
 /* ─────────────────────────────────────────── */
 /* Project Card                                */
 /* ─────────────────────────────────────────── */
-const ProjectCard = ({ project, index, onManageTeam, onDelete }) => {
+const ProjectCard = ({ project, index, onManageTeam, onDelete, onEdit }) => {
   const isOwner = project.isOwner;
   const devRole = project.role; // only set when isAssigned
   const members = project.members || [];
@@ -136,7 +136,21 @@ const ProjectCard = ({ project, index, onManageTeam, onDelete }) => {
             <FolderKanban className="w-6 h-6 text-gray-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-semibold text-gray-900 truncate">{project.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-semibold text-gray-900 truncate">{project.name}</h3>
+              {isOwner && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (onEdit) onEdit(project);
+                  }}
+                  className="p-1 text-gray-400 hover:text-[#1a1d23] hover:bg-gray-100 rounded-md transition-colors opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
             <p className="text-sm text-gray-500 line-clamp-1">
               {project.description || 'No description'}
             </p>
@@ -264,8 +278,19 @@ function TeamMembersDialog({ project, onClose, token }) {
 
   const handleAdd = (e) => {
     e.preventDefault();
-    if (!email.trim() || !project?._id) return;
-    addMutation.mutate({ email: email.trim(), role, name: name.trim(), projectId: project._id });
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !project?._id) return;
+
+    const isDuplicate = members.some(
+      (m) => m.email.toLowerCase() === cleanEmail.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      toast.error('This member is already assigned to this project');
+      return;
+    }
+
+    addMutation.mutate({ email: cleanEmail, role, name: name.trim(), projectId: project._id });
   };
 
   const startEdit = (member) => {
@@ -541,6 +566,8 @@ export default function Dashboard() {
   const [token, setToken] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
   const [projectToDelete, setProjectToDelete] = useState(null);
+  const [projectToEdit, setProjectToEdit] = useState(null);
+  const [editProjectName, setEditProjectName] = useState('');
   const [isDeletingProject, setIsDeletingProject] = useState(false);
   const { activeProjectId } = useProjectStore();
   const queryClient = useQueryClient();
@@ -647,6 +674,33 @@ export default function Dashboard() {
     },
   });
 
+  const updateProjectMutation = useMutation({
+    mutationFn: async ({ id, name }) => {
+      const res = await apiClient.put(`/api/projects/${id}`, { name });
+      return res.data;
+    },
+    onSuccess: (res) => {
+      queryClient.setQueryData(['projects'], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: old.data.map((p) => p._id === res.data._id ? { ...p, name: res.data.name } : p)
+        };
+      });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      setProjectToEdit(null);
+      setEditProjectName('');
+      toast.success('Project updated');
+    },
+    onError: (err) => toast.error(err.message || 'Failed to update project'),
+  });
+
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    if (!editProjectName.trim() || !projectToEdit) return;
+    updateProjectMutation.mutate({ id: projectToEdit._id, name: editProjectName.trim() });
+  };
+
   return (
     <div className="relative min-h-[calc(100vh-140px)] flex flex-col py-10 px-4">
       {/* background grid */}
@@ -712,6 +766,10 @@ export default function Dashboard() {
                   index={index}
                   onManageTeam={handleOpenTeamDialog}
                   onDelete={(p) => setProjectToDelete(p)}
+                  onEdit={(p) => {
+                    setProjectToEdit(p);
+                    setEditProjectName(p.name);
+                  }}
                 />
               ))
             )}
@@ -762,6 +820,75 @@ export default function Dashboard() {
         description="This will permanently delete the project along with all its tasks, feedback, insights, features, and team members. This cannot be undone."
         confirmLabel="Delete Project"
       />
+
+      {/* Edit Project Dialog */}
+      <AnimatePresence>
+        {projectToEdit && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !updateProjectMutation.isPending && setProjectToEdit(null)}
+              className="fixed inset-0 z-[50] bg-black/20 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="fixed inset-0 z-[51] flex items-center justify-center px-4 pointer-events-none"
+            >
+              <form
+                onSubmit={handleEditSubmit}
+                className="pointer-events-auto w-full max-w-sm bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden p-6"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Edit Project</h3>
+                  <button
+                    type="button"
+                    onClick={() => setProjectToEdit(null)}
+                    className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="mb-6">
+                  <label htmlFor="edit-project-name" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Project Name
+                  </label>
+                  <input
+                    id="edit-project-name"
+                    type="text"
+                    autoFocus
+                    required
+                    value={editProjectName}
+                    onChange={(e) => setEditProjectName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#1a1d23] focus:ring-1 focus:ring-[#1a1d23]/20"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setProjectToEdit(null)}
+                    disabled={updateProjectMutation.isPending}
+                    className="flex-1 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={updateProjectMutation.isPending || !editProjectName.trim() || editProjectName === projectToEdit.name}
+                    className="flex-1 flex justify-center items-center gap-2 px-4 py-2 bg-[#1a1d23] text-white rounded-xl text-sm font-semibold hover:bg-black transition-all disabled:opacity-50"
+                  >
+                    {updateProjectMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

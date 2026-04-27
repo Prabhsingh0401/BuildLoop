@@ -105,7 +105,7 @@ export default function ProjectSelector({ iconOnly = false, fullWidth = false })
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className={`absolute top-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-[60] ${fullWidth ? 'left-0 right-0 w-full' : 'left-0 w-64'}`}
+            className={`absolute top-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-[60] ${fullWidth ? 'left-0 right-0 w-full' : 'right-0 w-64'}`}
           >
             <div className="p-2 max-h-[300px] overflow-y-auto no-scrollbar">
               <div className="px-2 py-1.5 mb-1">
