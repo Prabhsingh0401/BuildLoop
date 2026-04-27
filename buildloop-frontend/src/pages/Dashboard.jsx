@@ -271,7 +271,7 @@ function TeamMembersDialog({ project, onClose, token }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teamMembers', project?._id] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast.success('Member removed from project');
+      toast.error('Member removed from project');
     },
     onError: (err) => toast.error(err.message),
   });

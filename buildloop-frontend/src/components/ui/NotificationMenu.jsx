@@ -2,12 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Check, Trash2, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../../api/client.js';
 
 export default function NotificationMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -52,6 +54,9 @@ export default function NotificationMenu() {
   const handleNotificationClick = (notif) => {
     if (!notif.isRead) {
       markAsReadMutation.mutate(notif._id);
+    }
+    if (notif.link) {
+      navigate(notif.link);
     }
     setIsOpen(false);
   };

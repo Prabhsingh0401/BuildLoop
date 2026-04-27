@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import {
   DndContext,
   useSensor,
@@ -52,31 +53,15 @@ async function moveTask({ taskId, status }) {
   return data.task;
 }
 
-/**
- * Build a map of { [parentTaskId]: { total, doneCount } }
- * from the task's own subtasks fetched by the drawer.
- * We read from the react-query cache keyed by ['subtasks', taskId].
- */
-function buildSubtaskStatsFromCache(queryClient, taskIds) {
-  const map = {};
-  for (const id of taskIds) {
-    const cached = queryClient.getQueryData(['subtasks', id]);
-    if (cached && cached.length > 0) {
-      map[id] = {
-        total:     cached.length,
-        doneCount: cached.filter((s) => s.status === 'done').length,
-      };
-    }
-  }
-  return map;
-}
-
 export default function KanbanBoard({ searchQuery = '', filters = { assignee: 'all', date: 'all' } }) {
   const { activeProjectId } = useProjectStore();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedTask, setSelectedTask] = useState(null);
   const [activeId, setActiveId] = useState(null);
   const [activeTab, setActiveTab] = useState(COLUMNS[0].key);
+
+  const urlTaskId = searchParams.get('taskId');
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -100,8 +85,40 @@ export default function KanbanBoard({ searchQuery = '', filters = { assignee: 'a
     return acc;
   }, {});
 
-  // Build subtask stats from per-task cache entries (populated when a task drawer was opened)
-  const subtaskStatsMap = buildSubtaskStatsFromCache(queryClient, tasks.map((t) => t._id));
+  const { data: allSubtasks = [] } = useQuery({
+    queryKey: ['allSubtasks', activeProjectId],
+    queryFn: () => fetchAllSubtasks(activeProjectId),
+    enabled: !!activeProjectId,
+  });
+
+  const subtaskStatsMap = (() => {
+    const map = {};
+    for (const sub of allSubtasks) {
+      const pid = sub.parentTaskId;
+      if (!map[pid]) map[pid] = { total: 0, doneCount: 0 };
+      map[pid].total += 1;
+      if (sub.status === 'done') map[pid].doneCount += 1;
+    }
+    for (const t of tasks) {
+      const cached = queryClient.getQueryData(['subtasks', t._id]);
+      if (cached) {
+        map[t._id] = {
+          total: cached.length,
+          doneCount: cached.filter((s) => s.status === 'done').length,
+        };
+      }
+    }
+    return map;
+  })();
+
+  useEffect(() => {
+    if (urlTaskId && tasks.length > 0 && !selectedTask) {
+      const task = tasks.find((t) => t._id === urlTaskId);
+      if (task) {
+        setSelectedTask(task);
+      }
+    }
+  }, [urlTaskId, tasks, selectedTask]);
 
   const { mutate: updateStatus } = useMutation({
     mutationFn: moveTask,
@@ -258,7 +275,13 @@ export default function KanbanBoard({ searchQuery = '', filters = { assignee: 'a
         <TaskDetailDrawer
           task={selectedTask}
           featureName={selectedTask.featureId ? featureMap[selectedTask.featureId] : null}
-          onClose={() => setSelectedTask(null)}
+          onClose={() => {
+            setSelectedTask(null);
+            if (searchParams.has('taskId')) {
+              searchParams.delete('taskId');
+              setSearchParams(searchParams);
+            }
+          }}
           onTaskUpdated={(updated) => {
             // Keep the drawer in sync after an edit
             setSelectedTask(updated);

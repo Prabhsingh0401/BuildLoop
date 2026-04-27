@@ -4,6 +4,13 @@ import { Task } from '../models/task.model.js';
 import { TeamMember } from '../models/teamMember.model.js';
 import { Notification } from '../models/notification.model.js';
 import { requireAuth, requirePM, requirePMForTask } from '../middleware/auth.middleware.js';
+import { createClerkClient } from '@clerk/backend';
+
+let clerk = null;
+const getClerk = () => {
+  if (!clerk) clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+  return clerk;
+};
 
 const router = express.Router();
 
@@ -68,6 +75,22 @@ router.post('/:id/subtasks', requireAuth, requirePMForTask(Task), async (req, re
   } catch (err) {
     console.error('[POST /api/tasks/:id/subtasks]', err);
     return res.status(500).json({ error: 'Failed to create subtask' });
+  }
+});
+
+// ─── GET /api/tasks/:projectId/all-subtasks ───────────────────────
+// Returns all subtasks for a project.
+router.get('/:projectId/all-subtasks', requireAuth, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(projectId)) {
+      return res.status(400).json({ error: 'Invalid projectId format' });
+    }
+    const subtasks = await Task.find({ projectId, parentTaskId: { $ne: null } });
+    return res.status(200).json({ subtasks });
+  } catch (err) {
+    console.error('[GET /api/tasks/:projectId/all-subtasks]', err);
+    return res.status(500).json({ error: 'Failed to fetch subtasks' });
   }
 });
 
@@ -153,6 +176,7 @@ router.post('/', requireAuth, requirePM, async (req, res) => {
           projectId: task.projectId,
           type: 'TASK_ASSIGNMENT',
           message: `You have been assigned to a task: "${task.title}"`,
+          link: `/kanban?taskId=${task._id}`,
         });
       }
     }
@@ -224,6 +248,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
           projectId: task.projectId,
           type: 'TASK_ASSIGNMENT',
           message: `You have been assigned to a task: "${task.title}"`,
+          link: `/kanban?taskId=${task._id}`,
         });
       }
     }
@@ -260,6 +285,90 @@ router.delete('/:id', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[DELETE /api/tasks/:id]', err);
     return res.status(500).json({ error: 'Failed to delete task' });
+  }
+});
+
+// ─── POST /api/tasks/:id/comments ────────────────────────────────
+// Adds a comment to a task and triggers notifications.
+// Required body: text, userName
+// Auth: required.
+router.post('/:id/comments', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { text, userName } = req.body;
+    const userId = req.auth.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid task id format' });
+    }
+    if (!text || typeof text !== 'string' || text.trim() === '') {
+      return res.status(400).json({ error: 'text is required' });
+    }
+
+    const task = await Task.findById(id);
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+
+    const newComment = {
+      userId,
+      userName: userName || 'User',
+      text: text.trim(),
+      createdAt: new Date(),
+    };
+
+    task.comments.push(newComment);
+    await task.save();
+
+    // Notification Logic
+    const { Project } = await import('../models/project.model.js');
+    const project = await Project.findById(task.projectId);
+    
+    if (project) {
+      const isOwner = project.createdBy === userId;
+
+      // If PM commented, notify developer (assignee)
+      if (isOwner && task.assignee) {
+        const member = await TeamMember.findOne({
+          $or: [{ name: task.assignee }, { email: task.assignee }],
+          projectId: task.projectId
+        });
+        if (member) {
+          await Notification.create({
+            userEmail: member.email,
+            projectId: task.projectId,
+            type: 'TASK_COMMENT',
+            message: `PM commented on your task "${task.title}": ${text.substring(0, 50)}...`,
+            link: `/kanban?taskId=${task._id}`,
+          });
+        }
+      }
+
+      // If developer commented, notify PM
+      if (!isOwner) {
+        try {
+          const pmClerkUser = await getClerk().users.getUser(project.createdBy);
+          const pmEmail = pmClerkUser.emailAddresses.find(
+            (e) => e.id === pmClerkUser.primaryEmailAddressId
+          )?.emailAddress;
+
+          if (pmEmail) {
+            await Notification.create({
+              userEmail: pmEmail,
+              projectId: task.projectId,
+              type: 'TASK_COMMENT',
+              message: `New comment from ${userName} on task "${task.title}": ${text.substring(0, 50)}...`,
+              link: `/kanban?taskId=${task._id}`,
+            });
+          }
+        } catch (clerkErr) {
+          console.error('Failed to get PM email:', clerkErr.message);
+        }
+      }
+    }
+
+    return res.status(201).json({ task });
+  } catch (err) {
+    console.error('[POST /api/tasks/:id/comments]', err);
+    return res.status(500).json({ error: 'Failed to add comment' });
   }
 });
 

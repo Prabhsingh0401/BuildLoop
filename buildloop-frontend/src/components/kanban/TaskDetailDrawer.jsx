@@ -23,7 +23,9 @@ import {
   ListTodo,
   Circle,
   Pencil,
+  MessageSquare,
 } from 'lucide-react';
+import { useUser } from '@clerk/clerk-react';
 import apiClient from '@/api/client.js';
 import useProjectStore from '@/store/projectStore.js';
 import ConfirmModal from '@/components/ui/ConfirmModal.jsx';
@@ -52,9 +54,8 @@ function SubtaskItem({ subtask, onToggle, onDelete }) {
       </button>
 
       <span
-        className={`flex-1 text-sm leading-snug transition-all ${
-          isDone ? 'line-through text-gray-400' : 'text-gray-700'
-        }`}
+        className={`flex-1 text-sm leading-snug transition-all ${isDone ? 'line-through text-gray-400' : 'text-gray-700'
+          }`}
       >
         {subtask.title}
       </span>
@@ -73,6 +74,7 @@ function SubtaskItem({ subtask, onToggle, onDelete }) {
 export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpdated }) {
   const { activeProjectId } = useProjectStore();
   const queryClient = useQueryClient();
+  const { user } = useUser();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(task?.title || '');
@@ -80,6 +82,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
   const [editedAssignee, setEditedAssignee] = useState(task?.assignee || '');
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [commentInput, setCommentInput] = useState('');
 
   // Subtask state
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
@@ -111,7 +114,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
   const subtasks = subtasksData ?? [];
 
   const doneCount = subtasks.filter((s) => s.status === 'done').length;
-  const progress  = subtasks.length > 0 ? Math.round((doneCount / subtasks.length) * 100) : 0;
+  const progress = subtasks.length > 0 ? Math.round((doneCount / subtasks.length) * 100) : 0;
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['teamMembers', activeProjectId],
@@ -165,6 +168,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
       subtaskInputRef.current?.focus();
       // Trigger a refetch of tasks so the board's subtask count updates
       queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
+      queryClient.invalidateQueries({ queryKey: ['allSubtasks', activeProjectId] });
     },
   });
 
@@ -181,6 +185,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
       );
       // Trigger a refetch of tasks so the board's subtask count updates
       queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
+      queryClient.invalidateQueries({ queryKey: ['allSubtasks', activeProjectId] });
     },
   });
 
@@ -196,15 +201,32 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
       );
       // Trigger a refetch of tasks so the board's subtask count updates
       queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
+      queryClient.invalidateQueries({ queryKey: ['allSubtasks', activeProjectId] });
     },
+  });
+
+  const addCommentMutation = useMutation({
+    mutationFn: async (text) => {
+      const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress || 'User';
+      const { data } = await apiClient.post(`/api/tasks/${task._id}/comments`, { text, userName });
+      return data.task;
+    },
+    onSuccess: (updatedTask) => {
+      // update task in cache
+      queryClient.setQueryData(['tasks', activeProjectId], (old) =>
+        old ? old.map((t) => (t._id === updatedTask._id ? updatedTask : t)) : old
+      );
+      if (onTaskUpdated) onTaskUpdated(updatedTask);
+      setCommentInput('');
+    }
   });
 
   if (!task) return null;
 
   const handleSave = () => {
-    updateMutation.mutate({ 
-      title: editedTitle, 
-      description: editedDescription, 
+    updateMutation.mutate({
+      title: editedTitle,
+      description: editedDescription,
       assignee: editedAssignee || null
     });
   };
@@ -265,11 +287,10 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
               {/* Edit toggle button */}
               <button
                 onClick={() => setIsEditing((v) => !v)}
-                className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all ${
-                  isEditing
+                className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all ${isEditing
                     ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     : 'bg-white border border-gray-100 text-gray-500 hover:text-gray-900 hover:border-gray-300'
-                }`}
+                  }`}
                 title={isEditing ? "Cancel Edit" : "Edit Task"}
               >
                 <Pencil size={18} />
@@ -469,6 +490,60 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
                     </div>
                   </div>
                 </div>
+
+                {/* Comments Section */}
+                <div className="space-y-4 pt-4 mt-8">
+                  <div className="border-b border-gray-50 pb-3">
+                    <h3 className="text-[12px] font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                      <MessageSquare size={16} />
+                      Comments
+                    </h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    {(task.comments || []).map((comment, idx) => (
+                      <div key={idx} className="flex gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-white font-semibold text-xs shrink-0 uppercase mt-1">
+                          {(comment.userName || 'U')[0]}
+                        </div>
+                        <div className="flex-1 space-y-1 bg-gray-50/50 p-3 rounded-lg border border-gray-50">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-gray-900">{comment.userName}</span>
+                            <span className="text-[10px] text-gray-400">
+                              {new Date(comment.createdAt).toLocaleDateString()} {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{comment.text}</p>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add Comment Input */}
+                    <div className="flex gap-3 mt-4">
+                      <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-white font-semibold text-xs shrink-0 uppercase mt-1">
+                        {(user?.fullName || user?.primaryEmailAddress?.emailAddress || 'U')[0]}
+                      </div>
+                      <div className="flex-1 flex flex-col gap-2">
+                        <textarea
+                          value={commentInput}
+                          onChange={(e) => setCommentInput(e.target.value)}
+                          placeholder="Add a comment"
+                          rows={2}
+                          className="w-full bg-white border border-gray-200 rounded-lg p-3 text-sm text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900/5 transition-all resize-none"
+                        />
+                        <div className="flex justify-end">
+                          <button
+                            onClick={() => addCommentMutation.mutate(commentInput)}
+                            disabled={!commentInput.trim() || addCommentMutation.isPending}
+                            className="px-4 py-1.5 rounded-lg bg-gray-900 text-white font-medium text-xs flex items-center gap-2 hover:bg-black transition-all disabled:opacity-40"
+                          >
+                            {addCommentMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : 'Comment'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* ── Right Column (Sidebar) ── */}
@@ -587,4 +662,4 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
       confirmLabel="Delete Task"
     />
   </>);
-}
+}

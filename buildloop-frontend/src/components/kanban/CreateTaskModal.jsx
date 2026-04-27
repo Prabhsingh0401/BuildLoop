@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Info, Check, Loader2, Calendar, ListTodo, Circle, Layers } from 'lucide-react';
+import { Plus, X, Info, Check, Loader2, Calendar, ListTodo, Circle, Layers, MessageSquare } from 'lucide-react';
+import { useUser } from '@clerk/clerk-react';
 import {
   Dialog,
   DialogContent,
@@ -29,8 +30,10 @@ export default function CreateTaskModal() {
   const { activeModal, closeModal } = useUIStore();
   const { activeProjectId } = useProjectStore();
   const queryClient = useQueryClient();
+  const { user } = useUser();
 
   const [form, setForm] = useState(INITIAL_FORM);
+  const [initialComment, setInitialComment] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('todo');
@@ -71,6 +74,7 @@ export default function CreateTaskModal() {
     setStatus('todo');
     setSubtaskInput('');
     setSubtaskList([]);
+    setInitialComment('');
     closeModal();
   }
 
@@ -142,6 +146,11 @@ export default function CreateTaskModal() {
       } else {
         // Seed an empty list so the drawer doesn't show a spinner for a task with no subtasks
         queryClient.setQueryData(['subtasks', newTaskId], []);
+      }
+
+      if (initialComment.trim()) {
+        const userName = user?.fullName || user?.primaryEmailAddress?.emailAddress || 'User';
+        await apiClient.post(`/api/tasks/${newTaskId}/comments`, { text: initialComment.trim(), userName });
       }
 
       await queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
@@ -290,6 +299,21 @@ export default function CreateTaskModal() {
                         <Plus size={15} />
                       </button>
                     </div>
+                  </div>
+
+                  {/* Initial Comment */}
+                  <div className="space-y-2 pt-4 border-t border-gray-50">
+                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                      <MessageSquare size={13} />
+                      Initial Comment (Optional)
+                    </label>
+                    <textarea
+                      value={initialComment}
+                      onChange={(e) => setInitialComment(e.target.value)}
+                      placeholder="Add a comment to notify the team upon creation..."
+                      rows={2}
+                      className="w-full bg-white border border-gray-100 rounded-lg p-3 text-sm text-gray-900 placeholder:text-gray-300 focus:ring-2 focus:ring-gray-900/5 focus:border-gray-900 transition-all outline-none resize-none leading-relaxed"
+                    />
                   </div>
                 </div>
 
