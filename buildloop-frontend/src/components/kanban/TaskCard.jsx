@@ -72,7 +72,7 @@ export default function TaskCard({ task, feature, subtaskStats, onClick }) {
         <div className="flex flex-col gap-3">
           {/* Header Tags */}
           <div className="flex flex-wrap gap-1.5">
-            {feature && (
+            {feature && feature.toLowerCase() !== task.title.toLowerCase() && (
               <span className="px-2 py-0.5 rounded bg-gray-50 text-gray-500 text-[10px] font-medium uppercase tracking-wider border border-gray-100">
                 {feature}
               </span>

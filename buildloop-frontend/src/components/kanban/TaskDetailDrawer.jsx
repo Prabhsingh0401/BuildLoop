@@ -249,7 +249,7 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
               <span className="px-3 py-1.5 rounded-full bg-gray-900 text-white text-[11px] font-semibold uppercase tracking-wider">
                 {task.status.replace('-', ' ')}
               </span>
-              {featureName && (
+              {featureName && featureName.toLowerCase() !== task.title.toLowerCase() && (
                 <span className="px-3 py-1.5 rounded-full bg-white border border-gray-100 text-gray-500 text-[11px] font-semibold uppercase tracking-wider">
                   {featureName}
                 </span>

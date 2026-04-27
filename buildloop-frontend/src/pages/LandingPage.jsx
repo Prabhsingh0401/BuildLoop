@@ -241,10 +241,7 @@ export default function LandingPage() {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         {/* Mobile logo */}
         <div className="flex lg:hidden items-center gap-2 mb-10">
-          <div className="w-8 h-8 rounded-full bg-[#1a1d23] flex items-center justify-center">
-            <span className="text-white text-xs font-semibold tracking-tight">BL</span>
-          </div>
-          <img src={LOGO_URL} alt="BuildLoop" className="h-5 w-auto" />
+          <img src={LOGO_URL} alt="BuildLoop" className="h-[30vw] w-auto" />
         </div>
 
           {pendingVerification ? (

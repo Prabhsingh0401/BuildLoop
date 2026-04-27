@@ -17,6 +17,13 @@ export const addTeamMember = async (req, res, next) => {
     if (!role) throw new AppError('Role is required', 400);
     if (!projectId) throw new AppError('Project ID is required', 400);
 
+    // Drop legacy index if it exists so same email can be assigned to multiple projects
+    try {
+      await TeamMember.collection.dropIndex('email_1');
+    } catch (e) {
+      // Ignore if it doesn't exist
+    }
+
     const member = new TeamMember({
       email: email.toLowerCase(),
       role,

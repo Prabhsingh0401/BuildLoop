@@ -17,6 +17,14 @@ export const addTeamMember = async (req, res, next) => {
     if (!role) throw new AppError('Role is required', 400);
     if (!projectId) throw new AppError('Project ID is required', 400);
 
+    // Synchronize indexes with the schema to drop any legacy unique indexes
+    // that might be restricting adding members across different projects
+    try {
+      await TeamMember.syncIndexes();
+    } catch (e) {
+      console.warn('Failed to sync indexes:', e);
+    }
+
     const member = new TeamMember({
       email: email.toLowerCase(),
       role,

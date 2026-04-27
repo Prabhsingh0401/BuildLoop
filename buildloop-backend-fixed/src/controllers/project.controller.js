@@ -145,3 +145,26 @@ export const deleteProject = async (req, res, next) => {
     next(err);
   }
 };
+
+export const updateProject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    const userId = req.auth?.userId;
+    if (!userId) throw new AppError('Unauthorized', 401);
+
+    if (!name || !name.trim()) throw new AppError('Project name is required', 400);
+
+    const project = await Project.findOneAndUpdate(
+      { _id: id, createdBy: userId },
+      { name: name.trim() },
+      { returnDocument: 'after' }
+    );
+
+    if (!project) throw new AppError('Project not found or not authorized', 404);
+
+    res.status(200).json({ success: true, data: project });
+  } catch (err) {
+    next(err);
+  }
+};

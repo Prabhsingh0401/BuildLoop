@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Plus, FolderKanban, Check, Loader2 } from 'lucide-react';
+import { ChevronDown, Plus, FolderKanban, Check, Loader2, Pencil } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/clerk-react';
 import useProjectStore from '../../store/projectStore';
-import { fetchProjects, createProject } from '../../services/projectService';
+import { fetchProjects, createProject, updateProject } from '../../services/projectService';
 
-export default function ProjectSelector({ iconOnly = false }) {
+export default function ProjectSelector({ iconOnly = false, fullWidth = false }) {
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const queryClient = useQueryClient();
   const { activeProjectId, setActiveProject } = useProjectStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [editingProjectId, setEditingProjectId] = useState(null);
+  const [editProjectName, setEditProjectName] = useState('');
 
   const { data: projectsData, isLoading } = useQuery({
     queryKey: ['projects'],
@@ -56,15 +58,33 @@ export default function ProjectSelector({ iconOnly = false }) {
     createMutation.mutate(newProjectName);
   };
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, name }) => {
+      const token = await getToken();
+      return updateProject(id, name, token);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      setEditingProjectId(null);
+      setEditProjectName('');
+    },
+  });
+
+  const handleUpdate = (e, id) => {
+    e.preventDefault();
+    if (!editProjectName.trim()) return;
+    updateMutation.mutate({ id, name: editProjectName });
+  };
+
   if (!isSignedIn) return null;
 
   return (
-    <div className="relative">
+    <div className={`relative ${fullWidth ? 'w-full' : ''}`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={iconOnly 
           ? 'p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all relative'
-          : 'flex items-center gap-2 px-4 py-2.5 bg-white/90 backdrop-blur-xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] ring-1 ring-black/[0.04] rounded-full hover:bg-white hover:shadow-md transition-all active:scale-95'
+          : `flex items-center gap-2 px-4 py-2.5 bg-white/90 backdrop-blur-xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] ring-1 ring-black/[0.04] rounded-full hover:bg-white hover:shadow-md transition-all active:scale-95 ${fullWidth ? 'w-full justify-between' : ''}`
         }
       >
         <FolderKanban className={iconOnly ? 'w-5 h-4' : 'w-5 h-5 text-ink-3'} />
@@ -85,7 +105,7 @@ export default function ProjectSelector({ iconOnly = false }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 top-full mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-[60]"
+            className={`absolute top-full mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl overflow-hidden z-[60] ${fullWidth ? 'left-0 right-0 w-full' : 'left-0 w-64'}`}
           >
             <div className="p-2 max-h-[300px] overflow-y-auto no-scrollbar">
               <div className="px-2 py-1.5 mb-1">
@@ -97,19 +117,64 @@ export default function ProjectSelector({ iconOnly = false }) {
               )}
 
               {projects.map((project) => (
-                <button
-                  key={project._id}
-                  onClick={() => {
-                    setActiveProject(project._id, project.isOwner ? 'owner' : 'member');
-                    setIsOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
-                    activeProjectId === project._id ? 'bg-gray-50 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <span className="truncate pr-2">{project.name}</span>
-                  {activeProjectId === project._id && <Check className="w-4 h-4 text-green-500 shrink-0" />}
-                </button>
+                <div key={project._id} className="w-full">
+                  {editingProjectId === project._id ? (
+                    <form onSubmit={(e) => handleUpdate(e, project._id)} className="px-2 py-1">
+                      <input
+                        type="text"
+                        autoFocus
+                        value={editProjectName}
+                        onChange={(e) => setEditProjectName(e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditingProjectId(null)}
+                          className="flex-1 px-2 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-100 rounded-md"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={updateMutation.isPending || !editProjectName.trim()}
+                          className="flex-1 flex justify-center items-center px-2 py-1.5 text-xs font-semibold text-white bg-black hover:bg-gray-800 rounded-md disabled:opacity-50"
+                        >
+                          {updateMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Save'}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className={`group w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
+                      activeProjectId === project._id ? 'bg-gray-50 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}>
+                      <button
+                        onClick={() => {
+                          setActiveProject(project._id, project.isOwner ? 'owner' : 'member');
+                          setIsOpen(false);
+                        }}
+                        className="flex-1 flex items-center text-left truncate pr-2"
+                      >
+                        <span className="truncate">{project.name}</span>
+                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {project.isOwner && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingProjectId(project._id);
+                              setEditProjectName(project.name);
+                            }}
+                            className="p-1 text-gray-400 hover:text-brand transition-colors rounded-md hover:bg-gray-200 opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {activeProjectId === project._id && <Check className="w-4 h-4 text-green-500" />}
+                      </div>
+                    </div>
+                  )}
+                </div>
               ))}
 
               <div className="h-px bg-gray-100 my-2" />

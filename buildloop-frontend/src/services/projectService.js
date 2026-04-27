@@ -26,3 +26,19 @@ export const createProject = async (name, description, token) => {
   }
   return res.json();
 };
+
+export const updateProject = async (id, name, token) => {
+  const res = await fetch(`${API_BASE}/api/projects/${id}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    const errorBody = await res.text();
+    throw new Error(`Failed to update project: ${errorBody}`);
+  }
+  return res.json();
+};
