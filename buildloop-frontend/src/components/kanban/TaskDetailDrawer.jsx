@@ -163,6 +163,8 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
       queryClient.setQueryData(SUBTASK_KEY, (old) => [...(old ?? []), newSubtask]);
       setNewSubtaskTitle('');
       subtaskInputRef.current?.focus();
+      // Trigger a refetch of tasks so the board's subtask count updates
+      queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
     },
   });
 
@@ -177,6 +179,8 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
       queryClient.setQueryData(SUBTASK_KEY, (old) =>
         old ? old.map((s) => (s._id === updated._id ? updated : s)) : old
       );
+      // Trigger a refetch of tasks so the board's subtask count updates
+      queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
     },
   });
 
@@ -190,6 +194,8 @@ export default function TaskDetailDrawer({ task, onClose, featureName, onTaskUpd
       queryClient.setQueryData(SUBTASK_KEY, (old) =>
         old ? old.filter((s) => s._id !== deletedId) : old
       );
+      // Trigger a refetch of tasks so the board's subtask count updates
+      queryClient.invalidateQueries({ queryKey: ['tasks', activeProjectId] });
     },
   });
 

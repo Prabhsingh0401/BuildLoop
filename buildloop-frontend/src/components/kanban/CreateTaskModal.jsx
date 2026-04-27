@@ -107,6 +107,12 @@ export default function CreateTaskModal() {
     setLoading(true);
     setError('');
 
+    // Auto-add any pending subtask text before submitting
+    const finalSubtaskList = [...subtaskList];
+    if (subtaskInput.trim()) {
+      finalSubtaskList.push({ id: crypto.randomUUID(), title: subtaskInput.trim() });
+    }
+
     try {
       // 1. Create the parent task
       const { data: taskData } = await apiClient.post('/api/tasks', {
@@ -122,9 +128,9 @@ export default function CreateTaskModal() {
       const newTaskId = taskData.task._id;
 
       // 2. Create all subtasks in parallel and collect the returned objects
-      if (subtaskList.length > 0) {
+      if (finalSubtaskList.length > 0) {
         const results = await Promise.all(
-          subtaskList.map((s) =>
+          finalSubtaskList.map((s) =>
             apiClient.post(`/api/tasks/${newTaskId}/subtasks`, { title: s.title })
           )
         );
