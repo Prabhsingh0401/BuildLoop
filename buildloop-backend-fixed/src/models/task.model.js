@@ -26,6 +26,12 @@ const TaskSchema = new mongoose.Schema(
       default: 'todo',
     },
     tags: [{ type: String }],
+    comments: [{
+      userId: { type: String, required: true },
+      userName: { type: String, required: true },
+      text: { type: String, required: true },
+      createdAt: { type: Date, default: Date.now }
+    }],
   },
   { timestamps: true }
 );
