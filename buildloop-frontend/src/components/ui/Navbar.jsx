@@ -41,7 +41,7 @@ export default function Navbar() {
   const { signOut } = useClerk();
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
-  const { activeProjectId, setActiveProjectId } = useProjectStore();
+  const { activeProjectId, setActiveProjectId, setCreateModalOpen } = useProjectStore();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [mobileCreateOpen, setMobileCreateOpen] = useState(false);
@@ -120,7 +120,16 @@ export default function Navbar() {
           {/* Right Side: Actions */}
           <div className="flex items-center gap-2">
             <SignedIn>
-              <ProjectSelector iconOnly />
+              <div className="flex items-center gap-1 bg-gray-100/10 backdrop-blur-sm p-1 rounded-full border border-gray-200">
+                <ProjectSelector iconOnly />
+                <button
+                  onClick={() => setCreateModalOpen(true)}
+                  className="p-2 text-gray-500 hover:text-gray-900 hover:bg-white hover:shadow-sm rounded-full transition-all group"
+                  title="Create Project"
+                >
+                  <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
+                </button>
+              </div>
             </SignedIn>
 
             <SignedIn>
@@ -332,12 +341,24 @@ export default function Navbar() {
               <div className="bg-white/95 backdrop-blur-xl border border-white shadow-[0_8px_32px_rgba(0,0,0,0.15)] rounded-3xl px-3 py-4">
                 {/* Close button */}
                 <div className="flex justify-end mb-2">
-                  <button
-                    onClick={() => setMobileDrawerOpen(false)}
-                    className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setCreateModalOpen(true);
+                        setMobileDrawerOpen(false);
+                      }}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 text-gray-900 rounded-full text-xs font-semibold border border-gray-100 active:scale-95 transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Create Project
+                    </button>
+                    <button
+                      onClick={() => setMobileDrawerOpen(false)}
+                      className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* User Info */}

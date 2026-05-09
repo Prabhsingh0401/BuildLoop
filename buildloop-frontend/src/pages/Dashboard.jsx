@@ -569,7 +569,7 @@ export default function Dashboard() {
   const [projectToEdit, setProjectToEdit] = useState(null);
   const [editProjectName, setEditProjectName] = useState('');
   const [isDeletingProject, setIsDeletingProject] = useState(false);
-  const { activeProjectId } = useProjectStore();
+  const { activeProjectId, setCreateModalOpen } = useProjectStore();
   const queryClient = useQueryClient();
 
   // Pre-fetch token
@@ -706,7 +706,7 @@ export default function Dashboard() {
       {/* background grid */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#E2E8F0_1px,transparent_1px),linear-gradient(to_bottom,#E2E8F0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_10%,transparent_100%)] opacity-40 pointer-events-none" />
 
-      <div className="z-10 w-full max-w-7xl mx-auto">
+      <div className="w-full max-w-7xl mx-auto">
 
         {/* ── Stats + Charts ── */}
         <DashboardStats
@@ -750,13 +750,13 @@ export default function Dashboard() {
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">No projects yet</h3>
                 <p className="text-gray-500 mb-6 text-sm">Create your first project to get started</p>
-                <NavLink
-                  to="/feedback"
-                  className="flex items-center gap-2 px-5 py-2.5 bg-[#1a1d23] hover:bg-black text-white rounded-full text-sm font-semibold transition-all"
+                <button
+                  onClick={() => setCreateModalOpen(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-[#1a1d23] hover:bg-black text-white rounded-full text-sm font-semibold transition-all shadow-lg active:scale-95"
                 >
                   <Plus className="w-4 h-4" />
                   Create Project
-                </NavLink>
+                </button>
               </div>
             ) : (
               ownedProjects.map((project, index) => (

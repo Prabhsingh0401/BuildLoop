@@ -33,7 +33,7 @@ export default function TaskFiltersSheet({ isOpen, onClose, filters, setFilters,
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[100]"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[1000]"
           />
 
           {/* Sheet */}
@@ -42,7 +42,7 @@ export default function TaskFiltersSheet({ isOpen, onClose, filters, setFilters,
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-[101] md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[400px] md:rounded-3xl border border-white/40 bg-white/80 backdrop-blur-xl rounded-t-3xl shadow-[0_-8px_30px_rgb(0,0,0,0.1)] flex flex-col max-h-[85vh]"
+            className="fixed bottom-0 left-0 right-0 z-[1001] md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[400px] md:rounded-3xl border border-white/40 bg-white/80 backdrop-blur-xl rounded-t-3xl shadow-[0_-8px_30px_rgb(0,0,0,0.1)] flex flex-col max-h-[85vh]"
           >
             {/* Handle for mobile pull-down (visual only) */}
             <div className="w-full flex justify-center pt-3 pb-1 md:hidden">

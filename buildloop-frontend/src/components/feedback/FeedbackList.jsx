@@ -61,7 +61,7 @@ export default function FeedbackList() {
         </div>
         <p className="text-sm font-medium text-ink mb-1">No feedback yet</p>
         <p className="text-xs text-ink-3 max-w-[200px]">
-          Submit feedback manually or connect Slack/Reddit to sync automatically
+          Submit feedback manually or connect Slack to sync automatically
         </p>
       </div>
     );
